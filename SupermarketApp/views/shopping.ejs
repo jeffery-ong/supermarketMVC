@@ -12,19 +12,19 @@
   <main class="container py-5 shop-layout">
     <h1 class="mb-4 text-center">Shop</h1>
 
-    <% if (Array.isArray(topSellers) && topSellers.length) { %>
+    <% const favs = (products || []).filter(p => p.isFavorite); %>
+    <% const nonFavs = (products || []).filter(p => !p.isFavorite); %>
+
+    <% if (favs.length) { %>
       <section class="container py-4">
-        <h2 class="h4 mb-3">Top Sellers</h2>
+        <div class="d-flex align-items-center mb-3">
+          <h2 class="h4 mb-0 me-2">Favourites</h2>
+          <span class="badge bg-warning text-dark">Favourite</span>
+        </div>
         <div class="row g-3">
-          <% topSellers.forEach(product => { %>
+          <% favs.forEach(product => { %>
             <div class="col-md-3">
-              <div class="card h-100 border-success">
-                <img src="<%= product.image %>" class="card-img-top" alt="<%= product.name %>">
-                <div class="card-body">
-                  <h5 class="card-title"><%= product.name %></h5>
-                  <p class="card-text fw-semibold">$<%= Number(product.price).toFixed(2) %></p>
-                </div>
-              </div>
+              <%- include('partials/productCard', { product: product, session: session }) %>
             </div>
           <% }) %>
         </div>
@@ -32,24 +32,11 @@
     <% } %>
 
     <section class="container py-4">
+      <h2 class="h5 mb-3">All Products</h2>
       <div class="row g-3">
-        <% (Array.isArray(products) ? products : []).forEach(product => { %>
+        <% nonFavs.forEach(product => { %>
           <div class="col-md-3">
-            <div class="card h-100">
-              <img src="<%= product.image %>" class="card-img-top" alt="<%= product.name %>">
-              <div class="card-body d-flex flex-column">
-                <h5 class="card-title"><%= product.name %></h5>
-                <p class="card-text fw-semibold">$<%= Number(product.price).toFixed(2) %></p>
-                <% if (session && session.user && session.user.role === 'admin') { %>
-                  <form action="/products/<%= product.id %>/favorite" method="POST" class="mt-auto">
-                    <input type="hidden" name="favorite" value="<%= product.isFavorite ? 0 : 1 %>">
-                    <button type="submit" class="btn <%= product.isFavorite ? 'btn-warning' : 'btn-outline-warning' %> w-100">
-                      <%= product.isFavorite ? 'Remove from Top Sellers' : 'Mark as Top Seller' %>
-                    </button>
-                  </form>
-                <% } %>
-              </div>
-            </div>
+            <%- include('partials/productCard', { product: product, session: session }) %>
           </div>
         <% }) %>
       </div>

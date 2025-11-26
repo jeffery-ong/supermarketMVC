@@ -119,11 +119,16 @@ app.post('/cart/add', Cartcontroller.addToCart);
 app.post('/cart/update/:productId', Cartcontroller.updateQuantity);
 app.post('/cart/remove/:productId', Cartcontroller.removeItem);
 
-app.post('/checkout', checkAuthenticated, Checkoutcontroller.checkout);
+// Payment / checkout flow
+app.get('/payment', checkAuthenticated, Checkoutcontroller.showPayment);
+app.post('/payment/confirm', checkAuthenticated, Checkoutcontroller.processPayment);
+app.post('/checkout', checkAuthenticated, Checkoutcontroller.checkout); // legacy, redirects to /payment
 
 app.get('/purchase-history', checkAuthenticated, phcontroller.view);
 
-app.get('/products/:id/favorite', checkAuthenticated, Productcontroller.toggleFavorite);
+// Allow both GET and POST (and optional pluralization) for favorite toggle
+app.all('/products/:id/favorite', checkAuthenticated, Productcontroller.toggleFavorite);
+app.all('/product/:id/favorite', checkAuthenticated, Productcontroller.toggleFavorite);
 
 app.get('/', (req, res) => res.render('home', { title: 'Home' }));
 

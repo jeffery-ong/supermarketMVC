@@ -34,7 +34,8 @@ module.exports = {
                 discountPercentage,
                 offerMessage,
                 COALESCE(isFavorite, 0) AS isFavorite
-         FROM products`,
+         FROM products
+         ORDER BY COALESCE(isFavorite, 0) DESC, productName ASC`,
         (err, rows) => {
           if (err) return reject(err);
           resolve(rows.map(hydrate));

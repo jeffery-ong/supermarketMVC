@@ -3,6 +3,13 @@ const Product = require('../models/Product');
 exports.shopping = async (req, res, next) => {
   try {
     const products = await Product.getAll();
+
+    // Move favorites to the front while keeping a stable order for the rest
+    products.sort((a, b) => {
+      if (a.isFavorite === b.isFavorite) return 0;
+      return a.isFavorite ? -1 : 1;
+    });
+
     const topSellers = products.filter(p => p.isFavorite);
     res.render('shopping', {
       title: 'Shop',
@@ -16,12 +23,28 @@ exports.shopping = async (req, res, next) => {
 
 exports.toggleFavorite = async (req, res) => {
   try {
-    if (!req.session.user || req.session.user.role !== 'admin') {
+    const productId = parseInt(req.params.id, 10);
+    if (Number.isNaN(productId)) {
       return res.redirect('/shopping');
     }
-    const productId = parseInt(req.params.id, 10);
-    const favorite = req.body.favorite === '1';
+
+    const product = await Product.getById(productId);
+    if (!product) {
+      return res.redirect('/shopping');
+    }
+
+    const favoriteInput = (req.body.favorite ?? req.query.favorite ?? '').toString();
+    let favorite;
+    if (favoriteInput === '1' || favoriteInput.toLowerCase() === 'true') {
+      favorite = true;
+    } else if (favoriteInput === '0' || favoriteInput.toLowerCase() === 'false') {
+      favorite = false;
+    } else {
+      favorite = !product.isFavorite;
+    }
+
     await Product.setFavorite(productId, favorite);
+    // Always return to shopping (or referrer) so the UI reflects the change
     res.redirect(req.get('referer') || '/shopping');
   } catch (err) {
     console.error('toggleFavorite error:', err);

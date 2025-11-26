@@ -1,0 +1,43 @@
+<div class="card h-100 <%= product.isFavorite ? 'border-warning' : '' %>">
+  <img src="<%= product.image %>" class="card-img-top" alt="<%= product.name %>" style="height: 180px; object-fit: contain; background: #f8f9fa;">
+  <div class="card-body d-flex flex-column">
+    <div class="d-flex align-items-center justify-content-between">
+      <h5 class="card-title mb-0"><%= product.name %></h5>
+      <% if (product.isFavorite) { %>
+        <span class="badge bg-warning text-dark">&#9733; Favourite</span>
+      <% } %>
+    </div>
+    <p class="card-text fw-semibold mb-1">$<%= Number(product.price).toFixed(2) %></p>
+    <% const stockState = product.stock <= 0
+      ? { cls: 'bg-danger text-white', label: 'Out of stock' }
+      : (product.stock < 20
+          ? { cls: 'bg-warning text-dark', label: `Low stock: ${product.stock}` }
+          : { cls: 'bg-secondary text-white', label: `Stock: ${product.stock}` });
+    %>
+    <% if (product.category) { %>
+      <p class="card-text text-muted mb-2">Category: <%= product.category %></p>
+    <% } %>
+    <div class="d-flex gap-2 mt-auto align-items-stretch">
+      <form action="/cart/add" method="POST" class="flex-fill">
+        <input type="hidden" name="productId" value="<%= product.id %>">
+        <input type="hidden" name="quantity" value="1">
+        <button type="submit" class="btn btn-primary w-100 h-100" <%= product.stock <= 0 ? 'disabled' : '' %>>
+          Add to Cart
+        </button>
+      </form>
+      <div class="flex-fill d-flex flex-column gap-2">
+        <% if (session && session.user) { %>
+          <form action="/products/<%= product.id %>/favorite" method="POST" class="flex-fill">
+            <input type="hidden" name="favorite" value="<%= product.isFavorite ? 0 : 1 %>">
+            <button type="submit" class="btn <%= product.isFavorite ? 'btn-warning' : 'btn-outline-warning' %> w-100">
+              <%= product.isFavorite ? 'Unfavourite' : 'Favourite' %>
+            </button>
+          </form>
+        <% } %>
+        <div>
+          <span class="badge <%= stockState.cls %> w-100 py-2 text-center"><%= stockState.label %></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
