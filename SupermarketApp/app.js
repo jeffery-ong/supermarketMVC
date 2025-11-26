@@ -59,6 +59,7 @@ app.use((req, res, next) => {
     error: req.flash('error'),
     success: req.flash('success')
   };
+  res.locals.session = req.session;
   next();
 });
 
@@ -121,6 +122,8 @@ app.post('/cart/remove/:productId', Cartcontroller.removeItem);
 app.post('/checkout', checkAuthenticated, Checkoutcontroller.checkout);
 
 app.get('/purchase-history', checkAuthenticated, phcontroller.view);
+
+app.get('/products/:id/favorite', checkAuthenticated, Productcontroller.toggleFavorite);
 
 app.get('/', (req, res) => res.render('home', { title: 'Home' }));
 

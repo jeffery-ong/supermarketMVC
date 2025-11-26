@@ -1,13 +1,31 @@
 const Product = require('../models/Product');
 
-exports.shopping = async (req, res) => {
+exports.shopping = async (req, res, next) => {
   try {
     const products = await Product.getAll();
-    const topSellers = products.slice(0, 3);
-    res.render('shopping', { title: 'Shop', products, topSellers });
+    const topSellers = products.filter(p => p.isFavorite);
+    res.render('shopping', {
+      title: 'Shop',
+      products,
+      topSellers
+    });
   } catch (err) {
-    console.error(err);
-    res.render('shopping', { title: 'Shop', products: [], topSellers: [] });
+    next(err);
+  }
+};
+
+exports.toggleFavorite = async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.redirect('/shopping');
+    }
+    const productId = parseInt(req.params.id, 10);
+    const favorite = req.body.favorite === '1';
+    await Product.setFavorite(productId, favorite);
+    res.redirect(req.get('referer') || '/shopping');
+  } catch (err) {
+    console.error('toggleFavorite error:', err);
+    res.redirect('/shopping');
   }
 };
 

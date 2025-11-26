@@ -12,31 +12,17 @@
   <main class="container py-5 shop-layout">
     <h1 class="mb-4 text-center">Shop</h1>
 
-    <% const featured = (topSellers && topSellers.length) ? topSellers : products.slice(0, 3); %>
-    <% if (featured.length) { %>
-      <section class="mb-5 top-sellers-section">
-        <h2 class="h4 mb-3 text-center">Top Sellers</h2>
-        <div class="row g-4 justify-content-center">
-          <% featured.forEach(product => { %>
-            <div class="col-12 col-md-6 col-lg-4 d-flex">
-              <div class="card product-card-lg shadow-sm w-100">
-                <div class="product-thumb-wrapper">
-                  <img src="<%= product.image %>" class="card-img-top product-thumb-lg" alt="<%= product.name %>" />
-                </div>
-                <div class="card-body d-flex flex-column text-center">
-                  <h5 class="card-title mb-1">
-                    <a class="text-decoration-none text-dark" href="/product/<%= product.id %>"><%= product.name %></a>
-                  </h5>
-                  <a href="/product/<%= product.id %>" class="small text-primary mb-3">View details</a>
-                  <p class="fw-semibold">$<%= product.price.toFixed(2) %></p>
-                  <p class="text-muted small mb-3">Stock: <%= product.stock %></p>
-                  <form action="/cart/add" method="POST" class="mt-auto">
-                    <input type="hidden" name="productId" value="<%= product.id %>" />
-                    <div class="input-group input-group-sm">
-                      <input type="number" name="quantity" value="1" min="1" max="<%= product.stock %>" class="form-control text-center" />
-                      <button type="submit" class="btn btn-primary">Add</button>
-                    </div>
-                  </form>
+    <% if (Array.isArray(topSellers) && topSellers.length) { %>
+      <section class="container py-4">
+        <h2 class="h4 mb-3">Top Sellers</h2>
+        <div class="row g-3">
+          <% topSellers.forEach(product => { %>
+            <div class="col-md-3">
+              <div class="card h-100 border-success">
+                <img src="<%= product.image %>" class="card-img-top" alt="<%= product.name %>">
+                <div class="card-body">
+                  <h5 class="card-title"><%= product.name %></h5>
+                  <p class="card-text fw-semibold">$<%= Number(product.price).toFixed(2) %></p>
                 </div>
               </div>
             </div>
@@ -45,29 +31,23 @@
       </section>
     <% } %>
 
-    <section class="all-products-section">
-      <h2 class="h5 text-center mb-4">All Products</h2>
-      <div class="row g-4 justify-content-center">
-        <% products.forEach(product => { %>
-          <div class="col-12 col-sm-6 col-md-4 col-lg-3 d-flex">
-            <div class="card product-card-sm shadow-sm w-100">
-              <div class="product-thumb-wrapper">
-                <img src="<%= product.image %>" class="card-img-top product-thumb-sm" alt="<%= product.name %>" />
-              </div>
-              <div class="card-body d-flex flex-column text-center">
-                <h5 class="card-title mb-1">
-                  <a href="/product/<%= product.id %>" class="text-decoration-none text-dark"><%= product.name %></a>
-                </h5>
-                <a href="/product/<%= product.id %>" class="small text-primary mb-3">View details</a>
-                <p class="fw-semibold">$<%= product.price.toFixed(2) %></p>
-                <p class="text-muted small mb-3">Stock: <%= product.stock %></p>
-                <form action="/cart/add" method="POST" class="mt-auto">
-                  <input type="hidden" name="productId" value="<%= product.id %>" />
-                  <div class="input-group input-group-sm">
-                    <input type="number" name="quantity" value="1" min="1" max="<%= product.stock %>" class="form-control text-center" />
-                    <button type="submit" class="btn btn-primary">Add</button>
-                  </div>
-                </form>
+    <section class="container py-4">
+      <div class="row g-3">
+        <% (Array.isArray(products) ? products : []).forEach(product => { %>
+          <div class="col-md-3">
+            <div class="card h-100">
+              <img src="<%= product.image %>" class="card-img-top" alt="<%= product.name %>">
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title"><%= product.name %></h5>
+                <p class="card-text fw-semibold">$<%= Number(product.price).toFixed(2) %></p>
+                <% if (session && session.user && session.user.role === 'admin') { %>
+                  <form action="/products/<%= product.id %>/favorite" method="POST" class="mt-auto">
+                    <input type="hidden" name="favorite" value="<%= product.isFavorite ? 0 : 1 %>">
+                    <button type="submit" class="btn <%= product.isFavorite ? 'btn-warning' : 'btn-outline-warning' %> w-100">
+                      <%= product.isFavorite ? 'Remove from Top Sellers' : 'Mark as Top Seller' %>
+                    </button>
+                  </form>
+                <% } %>
               </div>
             </div>
           </div>

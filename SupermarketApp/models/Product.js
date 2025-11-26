@@ -16,7 +16,8 @@ const hydrate = row => {
     image: imagePath,
     category: row.category || '',
     discount: Number(row.discountPercentage || 0),
-    offerMessage: row.offerMessage || ''
+    offerMessage: row.offerMessage || '',
+    isFavorite: Boolean(row.isFavorite || 0)
   };
 };
 
@@ -31,7 +32,8 @@ module.exports = {
                 image,
                 category,
                 discountPercentage,
-                offerMessage
+                offerMessage,
+                COALESCE(isFavorite, 0) AS isFavorite
          FROM products`,
         (err, rows) => {
           if (err) return reject(err);
@@ -51,7 +53,8 @@ module.exports = {
                 image,
                 category,
                 discountPercentage,
-                offerMessage
+                offerMessage,
+                COALESCE(isFavorite, 0) AS isFavorite
          FROM products
          WHERE id = ?`,
         [id],
@@ -98,6 +101,16 @@ module.exports = {
         if (err) return reject(err);
         resolve();
       });
+    });
+  },
+
+  setFavorite(id, favorite) {
+    return new Promise((resolve, reject) => {
+      db.query(
+        'UPDATE products SET isFavorite = ? WHERE id = ?',
+        [favorite ? 1 : 0, id],
+        err => (err ? reject(err) : resolve())
+      );
     });
   },
 
