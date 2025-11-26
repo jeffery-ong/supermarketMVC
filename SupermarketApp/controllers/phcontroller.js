@@ -16,6 +16,7 @@ exports.view = async (req, res, next) => {
       product: productIndex.get(row.productId) || null
     }));
 
+    
     res.render('purchaseHistory', {
       title: 'Purchase History',
       isAdmin,
