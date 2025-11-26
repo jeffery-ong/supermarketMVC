@@ -1,0 +1,26 @@
+<!-- filepath: c:\Users\24016580\Downloads\Year 2 Sem 2\C372 PayTech\lesson 3 deliverables\SupermarketMVC\SupermarketApp\views\navbar.ejs -->
+<nav class="navbar navbar-expand-sm bg-dark navbar-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">Supermarket App</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#collapsibleNavbar">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="collapsibleNavbar">
+      <ul class="navbar-nav ms-auto">
+        <% if (user) { %>
+          <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+          <% if (user.role === 'admin') { %>
+            <li class="nav-item"><a class="nav-link" href="/inventory">Inventory</a></li>
+          <% } %>
+          <li class="nav-item"><a class="nav-link" href="/shopping">Shop</a></li>
+          <li class="nav-item"><a class="nav-link" href="/cart">Cart</a></li>
+          <li class="nav-item"><a class="nav-link" href="/purchase-history">Purchase History</a></li>
+          <li class="nav-item"><a class="nav-link" href="/logout">Logout (<%= user.username %>)</a></li>
+        <% } else { %>
+          <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
+          <li class="nav-item"><a class="nav-link" href="/register">Register</a></li>
+        <% } %>
+      </ul>
+    </div>
+  </div>
+</nav>
