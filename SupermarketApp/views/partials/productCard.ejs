@@ -20,24 +20,22 @@
     <div class="d-flex gap-2 mt-auto align-items-stretch">
       <form action="/cart/add" method="POST" class="flex-fill">
         <input type="hidden" name="productId" value="<%= product.id %>">
-        <input type="hidden" name="quantity" value="1">
-        <button type="submit" class="btn btn-primary w-100 h-100" <%= product.stock <= 0 ? 'disabled' : '' %>>
-          Add to Cart
-        </button>
-      </form>
-      <div class="flex-fill d-flex flex-column gap-2">
-        <% if (session && session.user) { %>
-          <form action="/products/<%= product.id %>/favorite" method="POST" class="flex-fill">
-            <input type="hidden" name="favorite" value="<%= product.isFavorite ? 0 : 1 %>">
-            <button type="submit" class="btn <%= product.isFavorite ? 'btn-warning' : 'btn-outline-warning' %> w-100">
-              <%= product.isFavorite ? 'Unfavourite' : 'Favourite' %>
-            </button>
-          </form>
-        <% } %>
-        <div>
-          <span class="badge <%= stockState.cls %> w-100 py-2 text-center"><%= stockState.label %></span>
+        <div class="input-group">
+          <input type="number" name="quantity" class="form-control" min="1" max="<%= Math.max(1, product.stock) %>" value="1" <%= product.stock <= 0 ? 'disabled' : '' %>>
+          <button type="submit" class="btn btn-primary" <%= product.stock <= 0 ? 'disabled' : '' %>>Add</button>
         </div>
-      </div>
+      </form>
+      <% if (session && session.user) { %>
+        <form action="/products/<%= product.id %>/favorite" method="POST" class="flex-fill">
+          <input type="hidden" name="favorite" value="<%= product.isFavorite ? 0 : 1 %>">
+          <button type="submit" class="btn <%= product.isFavorite ? 'btn-warning' : 'btn-outline-warning' %> w-100">
+            <%= product.isFavorite ? 'Unfavourite' : 'Favourite' %>
+          </button>
+        </form>
+      <% } %>
+    </div>
+    <div class="mt-2">
+      <span class="badge <%= stockState.cls %> w-100 py-2 text-center"><%= stockState.label %></span>
     </div>
   </div>
 </div>

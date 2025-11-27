@@ -1,20 +1,38 @@
 const Product = require('../models/Product');
+const Favorite = require('../models/Favorite');
 
 exports.shopping = async (req, res, next) => {
   try {
     const products = await Product.getAll();
+    const userId = req.session.user ? req.session.user.id : null;
+    const favoriteIds = userId ? await Favorite.getForUser(userId) : [];
+    const favoriteSet = new Set(favoriteIds);
+    const searchTerm = (req.query.search || '').trim().toLowerCase();
+
+    const filtered = searchTerm
+      ? products.filter(p => {
+          const hay = `${p.name} ${p.category || ''}`.toLowerCase();
+          return hay.includes(searchTerm);
+        })
+      : products;
 
     // Move favorites to the front while keeping a stable order for the rest
-    products.sort((a, b) => {
-      if (a.isFavorite === b.isFavorite) return 0;
-      return a.isFavorite ? -1 : 1;
+    filtered.sort((a, b) => {
+      const aFav = favoriteSet.has(a.id);
+      const bFav = favoriteSet.has(b.id);
+      if (aFav === bFav) return 0;
+      return aFav ? -1 : 1;
     });
 
-    const topSellers = products.filter(p => p.isFavorite);
+    const topSellers = filtered.filter(p => favoriteSet.has(p.id));
+    filtered.forEach(p => {
+      p.isFavorite = favoriteSet.has(p.id);
+    });
     res.render('shopping', {
       title: 'Shop',
-      products,
-      topSellers
+      products: filtered,
+      topSellers,
+      search: req.query.search || ''
     });
   } catch (err) {
     next(err);
@@ -24,14 +42,20 @@ exports.shopping = async (req, res, next) => {
 exports.toggleFavorite = async (req, res) => {
   try {
     const productId = parseInt(req.params.id, 10);
+    const userId = req.session.user && req.session.user.id;
     if (Number.isNaN(productId)) {
       return res.redirect('/shopping');
+    }
+    if (!userId) {
+      return res.redirect('/login');
     }
 
     const product = await Product.getById(productId);
     if (!product) {
       return res.redirect('/shopping');
     }
+    const favorites = await Favorite.getForUser(userId);
+    const isCurrentlyFavorite = favorites.includes(productId);
 
     const favoriteInput = (req.body.favorite ?? req.query.favorite ?? '').toString();
     let favorite;
@@ -40,10 +64,10 @@ exports.toggleFavorite = async (req, res) => {
     } else if (favoriteInput === '0' || favoriteInput.toLowerCase() === 'false') {
       favorite = false;
     } else {
-      favorite = !product.isFavorite;
+      favorite = !isCurrentlyFavorite;
     }
 
-    await Product.setFavorite(productId, favorite);
+    await Favorite.set(userId, productId, favorite);
     // Always return to shopping (or referrer) so the UI reflects the change
     res.redirect(req.get('referer') || '/shopping');
   } catch (err) {
@@ -58,6 +82,11 @@ exports.viewProduct = async (req, res) => {
     const product = await Product.getById(id);
     if (!product) {
       return res.status(404).render('error', { title: 'Error', message: 'Product not found' });
+    }
+    const userId = req.session.user ? req.session.user.id : null;
+    if (userId) {
+      const favs = await Favorite.getForUser(userId);
+      product.isFavorite = favs.includes(product.id);
     }
     res.render('product', { title: product.name, product });
   } catch (e) {

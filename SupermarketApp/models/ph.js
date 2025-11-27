@@ -39,13 +39,18 @@ module.exports = {
     }
 
     const rows = cartItems
-      .filter(item => item && item.productId && item.quantity)
-      .map(item => [
+      .filter(item => item && (item.productId || item.product_id) && item.quantity)
+      .map(item => {
+        const productId = item.productId || item.product_id;
+        const qty = Number(item.quantity || 0);
+        const price = Number(item.price || 0);
+        return [
         userId,
-        item.productId,
-        item.quantity,
-        Number(item.price || 0) * Number(item.quantity || 0)
-      ]);
+          productId,
+          qty,
+          price * qty
+        ];
+      });
 
     if (!rows.length) return { affectedRows: 0 };
 

@@ -1,4 +1,5 @@
 const Product = require('../models/Product');
+const CartStore = require('../models/CartStore');
 
 const ensureCart = req => {
   if (!Array.isArray(req.session.cart)) req.session.cart = [];
@@ -13,12 +14,16 @@ const pushFeedback = (req, key, message) => {
 
 exports.viewCart = (req, res) => {
   const cart = ensureCart(req);
-  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const searchTerm = (req.query.search || '').trim().toLowerCase();
+  const filteredCart = searchTerm
+    ? cart.filter(item => item.name.toLowerCase().includes(searchTerm))
+    : cart;
+  const total = filteredCart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const errors = Array.isArray(req.session.cartErrors) ? req.session.cartErrors : [];
   const messages = Array.isArray(req.session.cartMessages) ? req.session.cartMessages : [];
   req.session.cartErrors = [];
   req.session.cartMessages = [];
-  res.render('cart', { title: 'Cart', cart, total, errors, messages });
+  res.render('cart', { title: 'Cart', cart: filteredCart, total, errors, messages, search: req.query.search || '' });
 };
 
 exports.addToCart = async (req, res) => {
@@ -46,6 +51,15 @@ exports.addToCart = async (req, res) => {
         stock: product.stock,
         quantity: Math.min(qty, product.stock)
       });
+    }
+
+    // Persist to DB for logged-in users
+    if (req.session.user) {
+      try {
+        await CartStore.upsertItem(req.session.user.id, product.id, qty);
+      } catch (dbErr) {
+        console.error('Failed to persist cart item:', dbErr.message);
+      }
     }
 
     pushFeedback(req, 'message', 'Item added to cart.');
@@ -76,6 +90,15 @@ exports.updateQuantity = async (req, res) => {
     }
 
     item.quantity = Math.min(qty, product.stock);
+
+    if (req.session.user) {
+      try {
+        await CartStore.setQuantity(req.session.user.id, product.id, item.quantity);
+      } catch (dbErr) {
+        console.error('Failed to update cart quantity:', dbErr.message);
+      }
+    }
+
     pushFeedback(req, 'message', 'Quantity updated.');
     res.redirect('/cart');
   } catch (err) {
@@ -85,7 +108,7 @@ exports.updateQuantity = async (req, res) => {
   }
 };
 
-exports.removeItem = (req, res) => {
+exports.removeItem = async (req, res) => {
   const { productId } = req.params;
   const cart = ensureCart(req);
   const index = cart.findIndex(entry => entry.productId === Number(productId));
@@ -93,6 +116,14 @@ exports.removeItem = (req, res) => {
   if (index !== -1) {
     cart.splice(index, 1);
     pushFeedback(req, 'message', 'Item removed from cart.');
+
+    if (req.session.user) {
+      try {
+        await CartStore.removeItem(req.session.user.id, Number(productId));
+      } catch (dbErr) {
+        console.error('Failed to remove cart item:', dbErr.message);
+      }
+    }
   } else {
     pushFeedback(req, 'error', 'Cart item not found.');
   }

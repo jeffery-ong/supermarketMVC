@@ -11,6 +11,7 @@
   <% const errs = (typeof errors !== 'undefined' && Array.isArray(errors)) ? errors : []; %>
   <% const msgs = (typeof messages !== 'undefined' && Array.isArray(messages)) ? messages : []; %>
   <% const items = (typeof cart !== 'undefined' && Array.isArray(cart)) ? cart : []; %>
+  <% const searchVal = (typeof search !== 'undefined' && search != null) ? search : ''; %>
 
   <div class="container mt-4">
     <% if (errs.length) { %>
@@ -20,7 +21,13 @@
       <div class="alert alert-success"><%= msgs.join(', ') %></div>
     <% } %>
 
-    <h2>Shopping Cart</h2>
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <h2 class="mb-0">Shopping Cart</h2>
+      <form class="d-flex" method="GET" action="/cart">
+        <input type="text" name="search" class="form-control form-control-sm me-2" placeholder="Search cart items" value="<%= searchVal %>">
+        <button class="btn btn-sm btn-outline-primary" type="submit">Search</button>
+      </form>
+    </div>
     <% if (items.length) { %>
       <table class="table table-bordered align-middle text-center">
         <thead>

@@ -11,6 +11,16 @@
 
   <main class="container py-5 shop-layout">
     <h1 class="mb-4 text-center">Shop</h1>
+    <% const searchVal = (typeof search !== 'undefined' && search != null) ? search : ''; %>
+
+    <form class="row g-3 mb-4 justify-content-center" method="GET" action="/shopping">
+      <div class="col-md-6">
+        <input type="text" name="search" class="form-control" placeholder="Search products or categories" value="<%= searchVal %>">
+      </div>
+      <div class="col-md-2 d-grid">
+        <button type="submit" class="btn btn-outline-primary">Search</button>
+      </div>
+    </form>
 
     <% const favs = (products || []).filter(p => p.isFavorite); %>
     <% const nonFavs = (products || []).filter(p => !p.isFavorite); %>

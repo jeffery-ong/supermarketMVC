@@ -17,7 +17,7 @@ const hydrate = row => {
     category: row.category || '',
     discount: Number(row.discountPercentage || 0),
     offerMessage: row.offerMessage || '',
-    isFavorite: Boolean(row.isFavorite || 0)
+    isFavorite: false // set per-user in controller
   };
 };
 
@@ -32,10 +32,9 @@ module.exports = {
                 image,
                 category,
                 discountPercentage,
-                offerMessage,
-                COALESCE(isFavorite, 0) AS isFavorite
+                offerMessage
          FROM products
-         ORDER BY COALESCE(isFavorite, 0) DESC, productName ASC`,
+         ORDER BY productName ASC`,
         (err, rows) => {
           if (err) return reject(err);
           resolve(rows.map(hydrate));
@@ -54,8 +53,7 @@ module.exports = {
                 image,
                 category,
                 discountPercentage,
-                offerMessage,
-                COALESCE(isFavorite, 0) AS isFavorite
+                offerMessage
          FROM products
          WHERE id = ?`,
         [id],
