@@ -9,9 +9,12 @@ exports.shopping = async (req, res, next) => {
     const favoriteSet = new Set(favoriteIds.map(Number));
     const isFav = p => favoriteSet.has(Number(p.id));
     const searchTerm = (req.query.search || '').trim().toLowerCase();
-    const sortParam = (req.query.sort || '').toLowerCase();
+    const sortParamRaw = (req.query.sort || '').toLowerCase();
+    const sortOptions = ['price-asc', 'price-desc', 'name-asc', 'name-desc'];
+    const sortParam = sortOptions.includes(sortParamRaw) ? sortParamRaw : '';
     const safeNum = val => {
-      const n = Number(val);
+      const cleaned = typeof val === 'string' ? val.replace(/[^0-9.-]+/g, '') : val;
+      const n = parseFloat(cleaned);
       return Number.isFinite(n) ? n : 0;
     };
 
@@ -22,17 +25,7 @@ exports.shopping = async (req, res, next) => {
         })
       : [...products];
 
-    if (searchTerm && working.length === 0) {
-      const notFoundMsg = 'Stuff is not found';
-      req.flash('error', notFoundMsg);
-      if (!res.locals.messages) {
-        res.locals.messages = { error: [], success: [] };
-      }
-      if (!Array.isArray(res.locals.messages.error)) {
-        res.locals.messages.error = [];
-      }
-      res.locals.messages.error.push(notFoundMsg);
-    }
+    const noResults = searchTerm && working.length === 0;
 
     const sortFns = {
       'price-asc': (a, b) => safeNum(a.price) - safeNum(b.price),
@@ -41,7 +34,7 @@ exports.shopping = async (req, res, next) => {
       'name-desc': (a, b) => (b.name || '').localeCompare(a.name || '')
     };
 
-    if (sortFns[sortParam]) {
+    if (sortParam && sortFns[sortParam]) {
       working = [...working].sort(sortFns[sortParam]);
     }
 
@@ -51,12 +44,18 @@ exports.shopping = async (req, res, next) => {
 
     const topSellers = working.filter(p => isFav(p));
 
+    // Ensure stale "not found" flash does not leak into non-empty views
+    if (!noResults && res.locals.messages && Array.isArray(res.locals.messages.error)) {
+      res.locals.messages.error = res.locals.messages.error.filter(msg => msg !== 'Stuff is not found');
+    }
+
     res.render('shopping', {
       title: 'Shop',
       products: working,
       topSellers,
       search: req.query.search || '',
-      sort: sortParam
+      sort: sortParam,
+      noResults
     });
   } catch (err) {
     next(err);
