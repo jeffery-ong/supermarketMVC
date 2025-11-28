@@ -10,41 +10,43 @@
   <%- include('navbar') %>
 
   <main class="container py-5 shop-layout">
+    <% if (messages && messages.error && messages.error.length) { %>
+      <div class="alert alert-danger position-sticky top-0 start-50 translate-middle-x mt-3" style="z-index: 1020;">
+        <%= messages.error.join(', ') %>
+      </div>
+    <% } %>
+    <% if (messages && messages.success && messages.success.length) { %>
+      <div class="alert alert-success position-sticky top-0 start-50 translate-middle-x mt-3" style="z-index: 1020;">
+        <%= messages.success.join(', ') %>
+      </div>
+    <% } %>
+
     <h1 class="mb-4 text-center">Shop</h1>
     <% const searchVal = (typeof search !== 'undefined' && search != null) ? search : ''; %>
+    <% const sortVal = (typeof sort !== 'undefined' && sort != null) ? sort : ''; %>
 
     <form class="row g-3 mb-4 justify-content-center" method="GET" action="/shopping">
-      <div class="col-md-6">
+      <div class="col-md-5">
         <input type="text" name="search" class="form-control" placeholder="Search products or categories" value="<%= searchVal %>">
       </div>
+      <div class="col-md-3">
+        <select name="sort" class="form-select" onchange="this.form.submit()">
+          <option value="" <%= sortVal === '' ? 'selected' : '' %>>Relevance (favourites first)</option>
+          <option value="price-asc" <%= sortVal === 'price-asc' ? 'selected' : '' %>>Price: Low to High</option>
+          <option value="price-desc" <%= sortVal === 'price-desc' ? 'selected' : '' %>>Price: High to Low</option>
+          <option value="name-asc" <%= sortVal === 'name-asc' ? 'selected' : '' %>>Name: A to Z</option>
+          <option value="name-desc" <%= sortVal === 'name-desc' ? 'selected' : '' %>>Name: Z to A</option>
+        </select>
+      </div>
       <div class="col-md-2 d-grid">
-        <button type="submit" class="btn btn-outline-primary">Search</button>
+        <button type="submit" class="btn btn-outline-primary">Apply</button>
       </div>
     </form>
 
-    <% const favs = (products || []).filter(p => p.isFavorite); %>
-    <% const nonFavs = (products || []).filter(p => !p.isFavorite); %>
-
-    <% if (favs.length) { %>
-      <section class="container py-4">
-        <div class="d-flex align-items-center mb-3">
-          <h2 class="h4 mb-0 me-2">Favourites</h2>
-          <span class="badge bg-warning text-dark">Favourite</span>
-        </div>
-        <div class="row g-3">
-          <% favs.forEach(product => { %>
-            <div class="col-md-3">
-              <%- include('partials/productCard', { product: product, session: session }) %>
-            </div>
-          <% }) %>
-        </div>
-      </section>
-    <% } %>
-
     <section class="container py-4">
-      <h2 class="h5 mb-3">All Products</h2>
+      <h2 class="h5 mb-3">Products</h2>
       <div class="row g-3">
-        <% nonFavs.forEach(product => { %>
+        <% (products || []).forEach(product => { %>
           <div class="col-md-3">
             <%- include('partials/productCard', { product: product, session: session }) %>
           </div>

@@ -6,33 +6,57 @@ exports.shopping = async (req, res, next) => {
     const products = await Product.getAll();
     const userId = req.session.user ? req.session.user.id : null;
     const favoriteIds = userId ? await Favorite.getForUser(userId) : [];
-    const favoriteSet = new Set(favoriteIds);
+    const favoriteSet = new Set(favoriteIds.map(Number));
+    const isFav = p => favoriteSet.has(Number(p.id));
     const searchTerm = (req.query.search || '').trim().toLowerCase();
+    const sortParam = (req.query.sort || '').toLowerCase();
+    const safeNum = val => {
+      const n = Number(val);
+      return Number.isFinite(n) ? n : 0;
+    };
 
-    const filtered = searchTerm
+    let working = searchTerm
       ? products.filter(p => {
           const hay = `${p.name} ${p.category || ''}`.toLowerCase();
           return hay.includes(searchTerm);
         })
-      : products;
+      : [...products];
 
-    // Move favorites to the front while keeping a stable order for the rest
-    filtered.sort((a, b) => {
-      const aFav = favoriteSet.has(a.id);
-      const bFav = favoriteSet.has(b.id);
-      if (aFav === bFav) return 0;
-      return aFav ? -1 : 1;
+    if (searchTerm && working.length === 0) {
+      const notFoundMsg = 'Stuff is not found';
+      req.flash('error', notFoundMsg);
+      if (!res.locals.messages) {
+        res.locals.messages = { error: [], success: [] };
+      }
+      if (!Array.isArray(res.locals.messages.error)) {
+        res.locals.messages.error = [];
+      }
+      res.locals.messages.error.push(notFoundMsg);
+    }
+
+    const sortFns = {
+      'price-asc': (a, b) => safeNum(a.price) - safeNum(b.price),
+      'price-desc': (a, b) => safeNum(b.price) - safeNum(a.price),
+      'name-asc': (a, b) => (a.name || '').localeCompare(b.name || ''),
+      'name-desc': (a, b) => (b.name || '').localeCompare(a.name || '')
+    };
+
+    if (sortFns[sortParam]) {
+      working = [...working].sort(sortFns[sortParam]);
+    }
+
+    working.forEach(p => {
+      p.isFavorite = isFav(p);
     });
 
-    const topSellers = filtered.filter(p => favoriteSet.has(p.id));
-    filtered.forEach(p => {
-      p.isFavorite = favoriteSet.has(p.id);
-    });
+    const topSellers = working.filter(p => isFav(p));
+
     res.render('shopping', {
       title: 'Shop',
-      products: filtered,
+      products: working,
       topSellers,
-      search: req.query.search || ''
+      search: req.query.search || '',
+      sort: sortParam
     });
   } catch (err) {
     next(err);
