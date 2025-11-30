@@ -21,16 +21,16 @@
           </div>
           <div class="mb-3">
             <label class="form-label">Card Number</label>
-            <input type="text" name="cardNumber" class="form-control" inputmode="numeric" pattern="[0-9]{16}" minlength="16" maxlength="16" title="Enter exactly 16 digits" required>
+            <input type="text" name="cardNumber" class="form-control" inputmode="numeric" pattern="[0-9]{16}" minlength="16" maxlength="16" title="Enter exactly 16 digits" required oninput="this.value=this.value.replace(/\D/g,'').slice(0,16)">
           </div>
           <div class="row g-3 mb-3">
             <div class="col-md-6">
               <label class="form-label">Expiry (MM/YY)</label>
-              <input type="text" name="expiry" class="form-control" placeholder="MM/YY" required>
+              <input type="text" name="expiry" class="form-control" placeholder="MM/YY" pattern="(0[1-9]|1[0-2])/[2-9][5-9]" title="Use MM/YY with year 25 or later" required oninput="this.value=this.value.replace(/[^0-9/]/g,'').slice(0,5)">
             </div>
             <div class="col-md-6">
               <label class="form-label">CVV</label>
-              <input type="text" name="cvv" class="form-control" inputmode="numeric" pattern="[0-9]{3}" maxlength="3" title="Enter 3 digits" required>
+              <input type="text" name="cvv" class="form-control" inputmode="numeric" pattern="[0-9]{3}" maxlength="3" title="Enter 3 digits" required oninput="this.value=this.value.replace(/\D/g,'').slice(0,3)">
             </div>
           </div>
           <div class="mb-3">

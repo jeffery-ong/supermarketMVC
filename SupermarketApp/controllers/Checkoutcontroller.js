@@ -39,14 +39,27 @@ module.exports = {
         req.flash('error', 'Cart is empty');
         return res.redirect('/cart');
       }
-      const cardNumber = (req.body.cardNumber || '').replace(/\s+/g, '');
-      if (!/^\d{16}$/.test(cardNumber)) {
+      const cardNumberRaw = (req.body.cardNumber || '').trim();
+      const cardNumber = cardNumberRaw.replace(/\D/g, '');
+      if (cardNumber.length !== 16) {
         req.flash('error', 'Card number must be 16 digits.');
         return res.redirect('/payment');
       }
-      const cvv = (req.body.cvv || '').trim();
-      if (!/^\d{3}$/.test(cvv)) {
+      const cvv = (req.body.cvv || '').replace(/\D/g, '');
+      if (cvv.length !== 3) {
         req.flash('error', 'CVV must be 3 digits.');
+        return res.redirect('/payment');
+      }
+      const expiry = (req.body.expiry || '').trim();
+      const expiryMatch = expiry.match(/^(\d{2})\/?(\d{2})$/);
+      if (!expiryMatch) {
+        req.flash('error', 'Expiry must be in MM/YY format.');
+        return res.redirect('/payment');
+      }
+      const month = Number(expiryMatch[1]);
+      const year = Number(expiryMatch[2]);
+      if (month < 1 || month > 12 || year < 25) {
+        req.flash('error', 'Expiry date is invalid or already expired.');
         return res.redirect('/payment');
       }
       const items = rawCart.map((item, idx) => {
