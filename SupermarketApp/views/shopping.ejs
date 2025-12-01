@@ -55,8 +55,7 @@
       </div>
     </form>
 
-    <% const favs = (products || []).filter(p => p.isFavorite); %>
-
+    <% const favs = (typeof favorites !== 'undefined' && Array.isArray(favorites)) ? favorites : []; %>
     <% if (favs.length) { %>
       <section class="container py-4">
         <div class="d-flex align-items-center mb-3">

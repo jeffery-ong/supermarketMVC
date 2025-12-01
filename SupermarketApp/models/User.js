@@ -92,5 +92,14 @@ module.exports = {
 
   findByIdentifier,
   verifyPassword: verify,
-  normalizeUser
+  normalizeUser,
+
+  findById(id) {
+    return new Promise((resolve, reject) => {
+      db.query('SELECT * FROM users WHERE id = ? LIMIT 1', [id], (err, rows) => {
+        if (err) return reject(err);
+        resolve(rows[0] || null);
+      });
+    });
+  }
 };

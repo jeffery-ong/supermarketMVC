@@ -9,16 +9,16 @@
       <ul class="navbar-nav ms-auto">
         <% if (user) { %>
           <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
-          <% if (user.role === 'admin') { %>
-            <li class="nav-item"><a class="nav-link" href="/inventory">Inventory</a></li>
-          <% } %>
-          <li class="nav-item"><a class="nav-link" href="/shopping">Shop</a></li>
-          <li class="nav-item"><a class="nav-link" href="/cart">Cart</a></li>
-          <li class="nav-item"><a class="nav-link" href="/purchase-history">Purchase History</a></li>
-          <li class="nav-item"><a class="nav-link" href="/logout">Logout (<%= user.username %>)</a></li>
-        <% } else { %>
-          <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
-          <li class="nav-item"><a class="nav-link" href="/register">Register</a></li>
+        <% if (user.role === 'admin') { %>
+          <li class="nav-item"><a class="nav-link" href="/inventory">Inventory</a></li>
+        <% } %>
+        <li class="nav-item"><a class="nav-link" href="/shopping">Shop</a></li>
+        <li class="nav-item"><a class="nav-link" href="/cart">Cart</a></li>
+        <li class="nav-item"><a class="nav-link" href="/purchase-history">Purchase History</a></li>
+        <li class="nav-item"><a class="nav-link" href="/logout">Logout (<%= user.username %>)</a></li>
+      <% } else { %>
+        <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
+        <li class="nav-item"><a class="nav-link" href="/register">Register</a></li>
         <% } %>
       </ul>
     </div>

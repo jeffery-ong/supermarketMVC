@@ -13,6 +13,7 @@ const Productcontroller = require('./controllers/Productcontroller');
 const Cartcontroller = require('./controllers/Cartcontroller');
 const Checkoutcontroller = require('./controllers/Checkoutcontroller');
 const phcontroller = require('./controllers/phcontroller');
+const Invoicecontroller = require('./controllers/Invoicecontroller');
 
 const app = express();
 
@@ -123,6 +124,8 @@ app.post('/cart/remove/:productId', Cartcontroller.removeItem);
 app.get('/payment', checkAuthenticated, Checkoutcontroller.showPayment);
 app.post('/payment/confirm', checkAuthenticated, Checkoutcontroller.processPayment);
 app.post('/checkout', checkAuthenticated, Checkoutcontroller.checkout); // legacy, redirects to /payment
+app.get('/invoice/:id', checkAuthenticated, Invoicecontroller.view);
+app.get('/invoice', checkAuthenticated, Invoicecontroller.latest);
 
 app.get('/purchase-history', checkAuthenticated, phcontroller.view);
 

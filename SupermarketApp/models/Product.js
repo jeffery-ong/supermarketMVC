@@ -14,9 +14,9 @@ const hydrate = row => {
     price: Number(row.price),
     stock: row.stock,
     image: imagePath,
-    category: row.category || '',
-    discount: Number(row.discountPercentage || 0),
-    offerMessage: row.offerMessage || '',
+    category: '',
+    discount: 0,
+    offerMessage: '',
     isFavorite: false // set per-user in controller
   };
 };
@@ -29,10 +29,7 @@ module.exports = {
                 productName       AS name,
                 quantity          AS stock,
                 price,
-                image,
-                category,
-                discountPercentage,
-                offerMessage
+                image
          FROM products
          ORDER BY productName ASC`,
         (err, rows) => {
@@ -50,10 +47,7 @@ module.exports = {
                 productName       AS name,
                 quantity          AS stock,
                 price,
-                image,
-                category,
-                discountPercentage,
-                offerMessage
+                image
          FROM products
          WHERE id = ?`,
         [id],
@@ -65,12 +59,12 @@ module.exports = {
     });
   },
 
-  create({ name, price, stock, image = '', category = '', discount = 0, offerMessage = '' }) {
+  create({ name, price, stock, image = '' }) {
     return new Promise((resolve, reject) => {
       db.query(
-        `INSERT INTO products (productName, quantity, price, image, category, discountPercentage, offerMessage)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [name, stock, price, image, category, discount, offerMessage],
+        `INSERT INTO products (productName, quantity, price, image)
+         VALUES (?, ?, ?, ?)`,
+        [name, stock, price, image],
         (err, result) => {
           if (err) return reject(err);
           resolve(result.insertId);
@@ -79,13 +73,13 @@ module.exports = {
     });
   },
 
-  update(id, { name, price, stock, image = '', category = '', discount = 0, offerMessage = '' }) {
+  update(id, { name, price, stock, image = '' }) {
     return new Promise((resolve, reject) => {
       db.query(
         `UPDATE products
-         SET productName = ?, quantity = ?, price = ?, image = ?, category = ?, discountPercentage = ?, offerMessage = ?
+         SET productName = ?, quantity = ?, price = ?, image = ?
          WHERE id = ?`,
-        [name, stock, price, image, category, discount, offerMessage, id],
+        [name, stock, price, image, id],
         err => {
           if (err) return reject(err);
           resolve();

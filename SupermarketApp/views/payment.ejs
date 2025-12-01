@@ -14,32 +14,54 @@
     <div class="row">
       <div class="col-lg-8 mb-3">
         <h2>Payment Details</h2>
-        <form action="/payment/confirm" method="POST" class="card p-3 shadow-sm">
+        <form action="/payment/confirm" method="POST" class="card p-3 shadow-sm" id="payment-form">
           <div class="mb-3">
-            <label class="form-label">Name on Card</label>
-            <input type="text" name="cardName" class="form-control" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Card Number</label>
-            <input type="text" name="cardNumber" class="form-control" inputmode="numeric" pattern="[0-9]{16}" minlength="16" maxlength="16" title="Enter exactly 16 digits" required oninput="this.value=this.value.replace(/\D/g,'').slice(0,16)">
-          </div>
-          <div class="row g-3 mb-3">
-            <div class="col-md-6">
-              <label class="form-label">Expiry (MM/YY)</label>
-              <input type="text" name="expiry" class="form-control" placeholder="MM/YY" pattern="(0[1-9]|1[0-2])/[2-9][5-9]" title="Use MM/YY with year 25 or later" required oninput="this.value=this.value.replace(/[^0-9/]/g,'').slice(0,5)">
+            <label class="form-label d-block">Payment Method</label>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="method" id="method-card" value="card" checked>
+              <label class="form-check-label" for="method-card">Card</label>
             </div>
-            <div class="col-md-6">
-              <label class="form-label">CVV</label>
-              <input type="text" name="cvv" class="form-control" inputmode="numeric" pattern="[0-9]{3}" maxlength="3" title="Enter 3 digits" required oninput="this.value=this.value.replace(/\D/g,'').slice(0,3)">
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="method" id="method-qr" value="paynow">
+              <label class="form-check-label" for="method-qr">PayNow / PayLah (QR)</label>
             </div>
           </div>
+
+          <div id="card-fields">
+            <div class="mb-3">
+              <label class="form-label">Name on Card</label>
+              <input type="text" name="cardName" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Card Number</label>
+              <input type="text" name="cardNumber" class="form-control" inputmode="numeric" pattern="[0-9]{16}" minlength="16" maxlength="16" title="Enter exactly 16 digits" required oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,16)">
+            </div>
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Expiry (MM/YY)</label>
+                <input type="text" name="expiry" class="form-control" placeholder="MM/YY" pattern="(0[1-9]|1[0-2])/[2-9][5-9]" title="Use MM/YY with year 25 or later" required oninput="this.value=this.value.replace(/[^0-9/]/g,'').slice(0,5)">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">CVV</label>
+                <input type="text" name="cvv" class="form-control" inputmode="numeric" pattern="[0-9]{3}" maxlength="3" title="Enter 3 digits" required oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,3)">
+              </div>
+            </div>
+          </div>
+
+          <div id="qr-fields" class="mb-3 d-none">
+            <p class="text-muted mb-2">Scan to pay with PayNow / PayLah, then click Next to generate your invoice.</p>
+            <div class="border rounded p-3 text-center bg-light">
+              <img src="/images/qr.png" alt="PayNow / PayLah QR" class="img-fluid" style="max-width: 320px;">
+            </div>
+          </div>
+
           <div class="mb-3">
             <label class="form-label">Billing Address</label>
             <textarea name="billing" rows="2" class="form-control"></textarea>
           </div>
           <div class="d-flex justify-content-between align-items-center">
             <a href="/cart" class="btn btn-secondary">Back to Cart</a>
-            <button type="submit" class="btn btn-success">Pay $<%= Number(total).toFixed(2) %></button>
+            <button type="submit" id="pay-button" class="btn btn-success" data-default-text="Pay $<%= Number(total).toFixed(2) %>">Pay $<%= Number(total).toFixed(2) %></button>
           </div>
         </form>
       </div>
@@ -72,5 +94,31 @@
       </div>
     </div>
   </div>
+  <script>
+    (function() {
+      const methodCard = document.getElementById('method-card');
+      const methodQr = document.getElementById('method-qr');
+      const cardFields = document.getElementById('card-fields');
+      const qrFields = document.getElementById('qr-fields');
+      const payButton = document.getElementById('pay-button');
+      const cardInputs = cardFields.querySelectorAll('input');
+
+      function toggleFields() {
+        const useQr = methodQr.checked;
+        cardFields.classList.toggle('d-none', useQr);
+        qrFields.classList.toggle('d-none', !useQr);
+        payButton.textContent = useQr ? 'Next' : payButton.dataset.defaultText;
+        cardInputs.forEach(input => {
+          input.required = !useQr;
+          input.disabled = useQr; // prevent browser from re-validating card inputs when using QR
+          if (useQr) input.value = ''; // clear stale card data when switching to QR
+        });
+      }
+
+      methodCard.addEventListener('change', toggleFields);
+      methodQr.addEventListener('change', toggleFields);
+      toggleFields();
+    })();
+  </script>
 </body>
 </html>

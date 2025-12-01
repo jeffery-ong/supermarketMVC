@@ -20,7 +20,12 @@
         <% if (invoice.customer.billing) { %>
           <div class="text-muted" style="white-space: pre-line;"><%= invoice.customer.billing %></div>
         <% } %>
-        <div class="text-muted mt-2">Paid with: <%= invoice.payment.method %> ending <%= invoice.payment.last4 %></div>
+        <div class="text-muted mt-2">
+          Paid with: <%= invoice.payment.method %>
+          <% if (invoice.payment.last4) { %>
+            ending <%= invoice.payment.last4 %>
+          <% } %>
+        </div>
       </div>
     </div>
 

@@ -3,7 +3,7 @@ const Favorite = require('../models/Favorite');
 
 exports.shopping = async (req, res, next) => {
   try {
-    const products = await Product.getAll();
+    const allProducts = await Product.getAll();
     const userId = req.session.user ? req.session.user.id : null;
     const favoriteIds = userId ? await Favorite.getForUser(userId) : [];
     const favoriteSet = new Set(favoriteIds.map(Number));
@@ -18,12 +18,18 @@ exports.shopping = async (req, res, next) => {
       return Number.isFinite(n) ? n : 0;
     };
 
-    let working = searchTerm
-      ? products.filter(p => {
-          const hay = `${p.name} ${p.category || ''}`.toLowerCase();
-          return hay.includes(searchTerm);
-        })
-      : [...products];
+    // Mark favorites on the full list
+    allProducts.forEach(p => {
+      p.isFavorite = isFav(p);
+    });
+
+    const favorites = allProducts.filter(p => p.isFavorite);
+
+    // Apply search/sort only to the main (non-favourite) grid
+    let working = allProducts.filter(p => !p.isFavorite);
+    if (searchTerm) {
+      working = working.filter(p => `${p.name}`.toLowerCase().includes(searchTerm));
+    }
 
     const noResults = searchTerm && working.length === 0;
 
@@ -38,12 +44,6 @@ exports.shopping = async (req, res, next) => {
       working = [...working].sort(sortFns[sortParam]);
     }
 
-    working.forEach(p => {
-      p.isFavorite = isFav(p);
-    });
-
-    const topSellers = working.filter(p => isFav(p));
-
     // Ensure stale "not found" flash does not leak into non-empty views
     if (!noResults && res.locals.messages && Array.isArray(res.locals.messages.error)) {
       res.locals.messages.error = res.locals.messages.error.filter(msg => msg !== 'Stuff is not found');
@@ -52,7 +52,7 @@ exports.shopping = async (req, res, next) => {
     res.render('shopping', {
       title: 'Shop',
       products: working,
-      topSellers,
+      favorites,
       search: req.query.search || '',
       sort: sortParam,
       noResults
@@ -64,8 +64,8 @@ exports.shopping = async (req, res, next) => {
 
 exports.toggleFavorite = async (req, res) => {
   try {
-    const productId = parseInt(req.params.id, 10);
-    const userId = req.session.user && req.session.user.id;
+    const productId = Number(req.params.id);
+    const userId = req.session.user && Number(req.session.user.id);
     if (Number.isNaN(productId)) {
       return res.redirect('/shopping');
     }
@@ -77,7 +77,7 @@ exports.toggleFavorite = async (req, res) => {
     if (!product) {
       return res.redirect('/shopping');
     }
-    const favorites = await Favorite.getForUser(userId);
+    const favorites = (await Favorite.getForUser(userId)).map(Number);
     const isCurrentlyFavorite = favorites.includes(productId);
 
     const favoriteInput = (req.body.favorite ?? req.query.favorite ?? '').toString();

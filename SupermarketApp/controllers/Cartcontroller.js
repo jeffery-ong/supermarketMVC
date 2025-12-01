@@ -1,10 +1,23 @@
 const Product = require('../models/Product');
 const CartStore = require('../models/CartStore');
+const User = require('../models/User');
 
 const ensureCart = req => {
   if (!Array.isArray(req.session.cart)) req.session.cart = [];
   return req.session.cart;
 };
+
+async function ensureDbUser(req) {
+  const userId = req.session.user && Number(req.session.user.id);
+  if (!userId) return null;
+  try {
+    const exists = await User.findById(userId);
+    return exists ? userId : null;
+  } catch (err) {
+    console.error('Failed to verify user for cart persist:', err.message);
+    return null;
+  }
+}
 
 const pushFeedback = (req, key, message) => {
   const storeKey = key === 'error' ? 'cartErrors' : 'cartMessages';
@@ -54,12 +67,15 @@ exports.addToCart = async (req, res) => {
     }
 
     // Persist to DB for logged-in users
-    if (req.session.user) {
+    const userId = await ensureDbUser(req);
+    if (userId) {
       try {
-        await CartStore.upsertItem(req.session.user.id, product.id, qty);
+        await CartStore.upsertItem(userId, product.id, qty);
       } catch (dbErr) {
         console.error('Failed to persist cart item:', dbErr.message);
       }
+    } else if (req.session.user) {
+      console.warn('Skipping cart persist: session user missing in DB');
     }
 
     pushFeedback(req, 'message', 'Item added to cart.');
@@ -91,12 +107,15 @@ exports.updateQuantity = async (req, res) => {
 
     item.quantity = Math.min(qty, product.stock);
 
-    if (req.session.user) {
+    const userId = await ensureDbUser(req);
+    if (userId) {
       try {
-        await CartStore.setQuantity(req.session.user.id, product.id, item.quantity);
+        await CartStore.setQuantity(userId, product.id, item.quantity);
       } catch (dbErr) {
         console.error('Failed to update cart quantity:', dbErr.message);
       }
+    } else if (req.session.user) {
+      console.warn('Skipping cart persist: session user missing in DB');
     }
 
     pushFeedback(req, 'message', 'Quantity updated.');
@@ -117,12 +136,15 @@ exports.removeItem = async (req, res) => {
     cart.splice(index, 1);
     pushFeedback(req, 'message', 'Item removed from cart.');
 
-    if (req.session.user) {
+    const userId = await ensureDbUser(req);
+    if (userId) {
       try {
-        await CartStore.removeItem(req.session.user.id, Number(productId));
+        await CartStore.removeItem(userId, Number(productId));
       } catch (dbErr) {
         console.error('Failed to remove cart item:', dbErr.message);
       }
+    } else if (req.session.user) {
+      console.warn('Skipping cart persist: session user missing in DB');
     }
   } else {
     pushFeedback(req, 'error', 'Cart item not found.');
