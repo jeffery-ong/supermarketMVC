@@ -14,6 +14,8 @@ const Cartcontroller = require('./controllers/Cartcontroller');
 const Checkoutcontroller = require('./controllers/Checkoutcontroller');
 const phcontroller = require('./controllers/phcontroller');
 const Invoicecontroller = require('./controllers/Invoicecontroller');
+const UserAdmincontroller = require('./controllers/UserAdmincontroller');
+const Profilecontroller = require('./controllers/Profilecontroller');
 
 const app = express();
 
@@ -36,6 +38,16 @@ const sessionStore = new MySQLStore(
   },
   connection
 );
+// Clear any persisted sessions on server start so everyone must log in again
+if (typeof sessionStore.clear === 'function') {
+  sessionStore.clear(err => {
+    if (err) {
+      console.error('Failed to clear sessions on startup:', err);
+    } else {
+      console.log('Session store cleared on startup; login required.');
+    }
+  });
+}
 
 app.use(
   session({
@@ -81,6 +93,11 @@ const upload = multer({ storage, fileFilter, limits: { fileSize: 2 * 1024 * 1024
 // auth middleware
 function checkAuthenticated(req, res, next) {
   if (!req.session.user) return res.redirect('/login');
+  next();
+}
+
+function checkAdmin(req, res, next) {
+  if (!req.session.user || req.session.user.role !== 'admin') return res.redirect('/shopping');
   next();
 }
 
@@ -133,7 +150,19 @@ app.get('/purchase-history', checkAuthenticated, phcontroller.view);
 app.all('/products/:id/favorite', checkAuthenticated, Productcontroller.toggleFavorite);
 app.all('/product/:id/favorite', checkAuthenticated, Productcontroller.toggleFavorite);
 
-app.get('/', (req, res) => res.render('home', { title: 'Home' }));
+// Profile
+app.get('/profile', checkAuthenticated, Profilecontroller.show);
+app.post('/profile', checkAuthenticated, Profilecontroller.update);
+app.post('/profile/password', checkAuthenticated, Profilecontroller.changePassword);
+
+// Admin user management
+app.get('/users', checkAuthenticated, checkAdmin, UserAdmincontroller.list);
+app.post('/users/:id/edit', checkAuthenticated, checkAdmin, UserAdmincontroller.update);
+app.post('/users/:id/delete', checkAuthenticated, checkAdmin, UserAdmincontroller.remove);
+app.post('/users/:id/promote', checkAuthenticated, checkAdmin, UserAdmincontroller.promote);
+app.post('/users/:id/demote', checkAuthenticated, checkAdmin, UserAdmincontroller.demote);
+
+app.get('/', checkAuthenticated, (req, res) => res.render('home', { title: 'Home' }));
 
 // Error handler
 app.use((err, req, res, next) => {

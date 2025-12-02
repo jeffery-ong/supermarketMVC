@@ -39,12 +39,22 @@
     <h1 class="mb-4 text-center">Shop</h1>
     <% const searchVal = (typeof search !== 'undefined' && search != null) ? search : ''; %>
     <% const sortVal = (typeof sort !== 'undefined' && sort != null) ? sort : ''; %>
+    <% const categoryVal = (typeof category !== 'undefined' && category != null) ? category : ''; %>
+    <% const categoryOptions = (typeof categories !== 'undefined' && Array.isArray(categories)) ? categories : []; %>
 
     <form class="row g-3 mb-4 justify-content-center" method="GET" action="/shopping">
-      <div class="col-md-7 col-lg-6">
+      <div class="col-lg-6 col-md-12">
         <input type="text" name="search" class="form-control" placeholder="Search products or categories" value="<%= searchVal %>">
       </div>
-      <div class="col-md-5 col-lg-4">
+      <div class="col-md-6 col-lg-3">
+        <select name="category" class="form-select" onchange="this.form.submit()">
+          <option value="" <%= categoryVal === '' ? 'selected' : '' %>>All categories</option>
+          <% categoryOptions.forEach(cat => { %>
+            <option value="<%= cat %>" <%= categoryVal === cat ? 'selected' : '' %>><%= cat %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="col-md-6 col-lg-3">
         <select name="sort" class="form-select" onchange="this.form.submit()">
           <option value="" <%= sortVal === '' ? 'selected' : '' %>>Default order</option>
           <option value="name-asc" <%= sortVal === 'name-asc' ? 'selected' : '' %>>Name: A to Z</option>

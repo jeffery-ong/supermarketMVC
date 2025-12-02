@@ -101,5 +101,79 @@ module.exports = {
         resolve(rows[0] || null);
       });
     });
+  },
+
+  getAll() {
+    return new Promise((resolve, reject) => {
+      db.query('SELECT id, username, email, contact, address, role FROM users ORDER BY username ASC', (err, rows) => {
+        if (err) return reject(err);
+        resolve(rows.map(normalizeUser));
+      });
+    });
+  },
+
+  update(id, fields = {}) {
+    const allowed = ['username', 'email', 'contact', 'address', 'role'];
+    const entries = Object.entries(fields).filter(([key, val]) => allowed.includes(key) && val !== undefined);
+    if (!entries.length) return Promise.resolve();
+
+    const columns = entries.map(([key]) => `${key} = ?`).join(', ');
+    const values = entries.map(([, val]) => val);
+    values.push(id);
+
+    return new Promise((resolve, reject) => {
+      db.query(`UPDATE users SET ${columns} WHERE id = ?`, values, err => {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
+  },
+
+  setRole(id, role) {
+    return new Promise((resolve, reject) => {
+      db.query('UPDATE users SET role = ? WHERE id = ?', [role, id], err => {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
+  },
+
+  remove(id) {
+    return new Promise((resolve, reject) => {
+      db.query('DELETE FROM users WHERE id = ?', [id], err => {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
+  },
+
+  updateProfile(id, { username, email, contact, address }) {
+    const fields = [];
+    const values = [];
+
+    if (username !== undefined) { fields.push('username = ?'); values.push(username); }
+    if (email !== undefined) { fields.push('email = ?'); values.push(email); }
+    if (contact !== undefined) { fields.push('contact = ?'); values.push(contact); }
+    if (address !== undefined) { fields.push('address = ?'); values.push(address); }
+
+    if (!fields.length) return Promise.resolve();
+    values.push(id);
+
+    return new Promise((resolve, reject) => {
+      db.query(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`, values, err => {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
+  },
+
+  setPassword(id, newPassword) {
+    const hashed = hash(newPassword);
+    return new Promise((resolve, reject) => {
+      db.query('UPDATE users SET password = ? WHERE id = ?', [hashed, id], err => {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
   }
 };

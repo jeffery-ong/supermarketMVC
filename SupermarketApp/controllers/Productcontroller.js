@@ -12,6 +12,15 @@ exports.shopping = async (req, res, next) => {
     const sortParamRaw = (req.query.sort || '').toLowerCase();
     const sortOptions = ['price-asc', 'price-desc', 'name-asc', 'name-desc'];
     const sortParam = sortOptions.includes(sortParamRaw) ? sortParamRaw : '';
+    const allCategories = Array.from(
+      new Set(
+        allProducts
+          .map(p => (p.category || '').trim())
+          .filter(Boolean)
+      )
+    ).sort((a, b) => a.localeCompare(b));
+    const categoryParamRaw = (req.query.category || '').trim();
+    const categoryParam = allCategories.includes(categoryParamRaw) ? categoryParamRaw : '';
     const safeNum = val => {
       const cleaned = typeof val === 'string' ? val.replace(/[^0-9.-]+/g, '') : val;
       const n = parseFloat(cleaned);
@@ -27,11 +36,14 @@ exports.shopping = async (req, res, next) => {
 
     // Apply search/sort only to the main (non-favourite) grid
     let working = allProducts.filter(p => !p.isFavorite);
+    if (categoryParam) {
+      working = working.filter(p => (p.category || '').trim().toLowerCase() === categoryParam.toLowerCase());
+    }
     if (searchTerm) {
       working = working.filter(p => `${p.name}`.toLowerCase().includes(searchTerm));
     }
 
-    const noResults = searchTerm && working.length === 0;
+    const noResults = (searchTerm || categoryParam) && working.length === 0;
 
     const sortFns = {
       'price-asc': (a, b) => safeNum(a.price) - safeNum(b.price),
@@ -55,6 +67,8 @@ exports.shopping = async (req, res, next) => {
       favorites,
       search: req.query.search || '',
       sort: sortParam,
+      category: categoryParam,
+      categories: allCategories,
       noResults
     });
   } catch (err) {
@@ -143,7 +157,7 @@ exports.add = async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'admin') {
       return res.redirect('/shopping');
     }
-    const { name, quantity, price } = req.body;
+    const { name, quantity, price, category } = req.body;
     const stock = Number(quantity);
     const numericPrice = Number(price);
     const imageFile = req.file ? req.file.filename : '';
@@ -153,7 +167,7 @@ exports.add = async (req, res) => {
       return res.redirect('/addProduct');
     }
 
-    await Product.create({ name, price: numericPrice, stock, image: imageFile });
+    await Product.create({ name, price: numericPrice, stock, image: imageFile, category });
     req.flash('success', 'Product added');
     res.redirect('/inventory');
   } catch (e) {
@@ -190,13 +204,13 @@ exports.edit = async (req, res) => {
     if (!existing) {
       return res.redirect('/inventory');
     }
-    const { name, quantity, price } = req.body;
+    const { name, quantity, price, category } = req.body;
     const stock = Number(quantity);
     const numericPrice = Number(price);
     const existingFile = (existing.image || '').replace(/^\/images\//, '');
     const imageFile = req.file ? req.file.filename : existingFile;
 
-    await Product.update(id, { name, price: numericPrice, stock, image: imageFile });
+    await Product.update(id, { name, price: numericPrice, stock, image: imageFile, category });
     req.flash('success', 'Product updated');
     res.redirect('/inventory');
   } catch (e) {

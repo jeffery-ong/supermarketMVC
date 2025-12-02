@@ -14,7 +14,7 @@ const hydrate = row => {
     price: Number(row.price),
     stock: row.stock,
     image: imagePath,
-    category: '',
+    category: row.category || '',
     discount: 0,
     offerMessage: '',
     isFavorite: false // set per-user in controller
@@ -29,7 +29,8 @@ module.exports = {
                 productName       AS name,
                 quantity          AS stock,
                 price,
-                image
+                image,
+                category
          FROM products
          ORDER BY productName ASC`,
         (err, rows) => {
@@ -47,7 +48,8 @@ module.exports = {
                 productName       AS name,
                 quantity          AS stock,
                 price,
-                image
+                image,
+                category
          FROM products
          WHERE id = ?`,
         [id],
@@ -59,12 +61,12 @@ module.exports = {
     });
   },
 
-  create({ name, price, stock, image = '' }) {
+  create({ name, price, stock, image = '', category = '' }) {
     return new Promise((resolve, reject) => {
       db.query(
-        `INSERT INTO products (productName, quantity, price, image)
-         VALUES (?, ?, ?, ?)`,
-        [name, stock, price, image],
+        `INSERT INTO products (productName, quantity, price, image, category)
+         VALUES (?, ?, ?, ?, ?)`,
+        [name, stock, price, image, category],
         (err, result) => {
           if (err) return reject(err);
           resolve(result.insertId);
@@ -73,13 +75,13 @@ module.exports = {
     });
   },
 
-  update(id, { name, price, stock, image = '' }) {
+  update(id, { name, price, stock, image = '', category = '' }) {
     return new Promise((resolve, reject) => {
       db.query(
         `UPDATE products
-         SET productName = ?, quantity = ?, price = ?, image = ?
+         SET productName = ?, quantity = ?, price = ?, image = ?, category = ?
          WHERE id = ?`,
-        [name, stock, price, image, id],
+        [name, stock, price, image, category, id],
         err => {
           if (err) return reject(err);
           resolve();
