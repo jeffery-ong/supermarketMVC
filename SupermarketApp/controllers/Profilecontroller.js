@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const PaymentMethod = require('../models/PaymentMethod');
 
 module.exports = {
   async show(req, res, next) {
@@ -9,7 +10,12 @@ module.exports = {
         req.flash('error', 'Profile not found');
         return res.redirect('/login');
       }
-      res.render('profile', { title: 'Profile', profile: normalized });
+      const payment = await PaymentMethod.getByUser(req.session.user.id);
+      res.render('profile', {
+        title: 'Profile',
+        profile: normalized,
+        cardInfo: payment || {}
+      });
     } catch (err) {
       next(err);
     }
@@ -18,7 +24,17 @@ module.exports = {
   async update(req, res) {
     try {
       const id = req.session.user.id;
-      const { username = '', email = '', contact = '', address = '' } = req.body;
+      const {
+        username = '',
+        email = '',
+        contact = '',
+        address = '',
+        cardNumber = '',
+        cardName = '',
+        cardLabel = '',
+        expiry = '',
+        cvv = ''
+      } = req.body;
 
       if (!username.trim()) {
         req.flash('error', 'Username is required');
@@ -37,6 +53,15 @@ module.exports = {
         email: email.trim(),
         contact: contact.trim(),
         address: address.trim()
+      });
+
+      // Persist payment method (stores last4/label/expiry/cvv, never full number)
+      await PaymentMethod.upsert(id, {
+        cardNumber,
+        cardName,
+        cardLabel,
+        expiry,
+        cvv
       });
 
       req.flash('success', 'Profile updated');

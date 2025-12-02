@@ -31,19 +31,22 @@
       </div>
     <% } %>
 
-    <form action="/profile" method="POST" class="profile-card mb-4">
+    <% const cardInfoSafe = (typeof cardInfo === "undefined" || !cardInfo) ? {} : cardInfo; %>
+    <% const maskedCard = cardInfoSafe.last4 ? ('************' + cardInfoSafe.last4) : ''; %>
+
+    <form action="/profile" method="POST" class="profile-card mb-4" id="profile-form">
       <div class="row g-3">
         <div class="col-md-6">
           <label for="username" class="form-label text-muted small">Name</label>
-          <input type="text" id="username" name="username" class="form-control" value="<%= profile.username %>" required>
+          <input type="text" id="username" name="username" class="form-control profile-field" value="<%= profile.username %>" required readonly>
         </div>
         <div class="col-md-6">
           <label for="email" class="form-label text-muted small">Email</label>
-          <input type="email" id="email" name="email" class="form-control" value="<%= profile.email || '' %>">
+          <input type="email" id="email" name="email" class="form-control profile-field" value="<%= profile.email || '' %>" readonly>
         </div>
         <div class="col-md-6">
           <label for="contact" class="form-label text-muted small">Contact Number</label>
-          <input type="text" id="contact" name="contact" class="form-control" value="<%= profile.contact || '' %>">
+          <input type="text" id="contact" name="contact" class="form-control profile-field" value="<%= profile.contact || '' %>" readonly>
         </div>
       </div>
 
@@ -52,30 +55,94 @@
           <span class="badge bg-info text-dark">Saved Credit/Debit Card</span>
           <span class="text-muted small">Optional</span>
         </div>
-        <div class="row g-2 align-items-center">
-          <div class="col-auto">
-            <span class="badge bg-primary">VISA</span>
-          </div>
-          <div class="col">
-            <input type="text" class="form-control" placeholder="Enter 16-digit card number" inputmode="numeric" maxlength="16" disabled>
-          </div>
-          <div class="col-auto">
-            <input type="text" class="form-control" placeholder="Enter 16-digit card" disabled>
+        <div class="row g-2 align-items-center mb-2">
+          <div class="col-md-6 col-12">
+            <input
+              type="text"
+              class="form-control profile-field"
+              name="cardName"
+              placeholder="Name on card"
+              value="<%= (cardInfoSafe.card_name || '') %>"
+              readonly
+            >
           </div>
         </div>
-        <div class="text-muted small mt-2">Card storage not enabled in this demo.</div>
+        <div class="row g-2 align-items-center">
+          <div class="col-md-7 col-sm-8 col-12">
+            <input
+              id="cardNumber"
+              type="text"
+              class="form-control profile-field"
+              name="cardNumber"
+              placeholder="<%= cardInfoSafe.last4 ? ('Saved ••••' + cardInfoSafe.last4) : 'Enter 16-digit card number' %>"
+              inputmode="numeric"
+              pattern="[0-9]{16}"
+              minlength="16"
+              maxlength="16"
+              title="Enter exactly 16 digits"
+              oninput="this.value = this.value.replace(/\D/g, '').slice(0,16)"
+              value="<%= maskedCard %>"
+              readonly
+            >
+          </div>
+          <div class="col-md-5 col-sm-4 col-12">
+            <input
+              type="text"
+              class="form-control text-capitalize profile-field"
+              name="cardLabel"
+              placeholder="Card label (optional)"
+              value="<%= (cardInfoSafe.label || '') %>"
+              readonly
+            >
+          </div>
+        </div>
+        <div class="row g-2 align-items-center mt-2">
+          <div class="col-md-6 col-sm-6 col-12">
+            <input
+              type="text"
+              class="form-control profile-field"
+              name="expiry"
+              placeholder="MM/YY"
+              pattern="(0[1-9]|1[0-2])/(2[24-9]|[3-9][0-9])"
+              title="Format MM/YY, year 24 or later"
+              oninput="this.value = this.value.replace(/[^0-9/]/g, '').slice(0,5)"
+              value="<%= (cardInfoSafe.expiry || '') %>"
+              readonly
+            >
+          </div>
+          <div class="col-md-6 col-sm-6 col-12">
+            <input
+              type="text"
+              class="form-control profile-field"
+              name="cvv"
+              placeholder="CVV"
+              inputmode="numeric"
+              pattern="[0-9]{3}"
+              maxlength="3"
+              title="3-digit CVV"
+              oninput="this.value = this.value.replace(/\D/g, '').slice(0,3)"
+              value="<%= (cardInfoSafe.cvv || '') %>"
+              readonly
+            >
+          </div>
+        </div>
+        <div class="text-muted small mt-2">Input enabled for demo; card details are not stored.</div>
       </div>
 
       <div class="mt-4">
         <label for="address" class="form-label text-muted small">Address</label>
-        <textarea id="address" name="address" class="form-control" rows="2"><%= profile.address || '' %></textarea>
+        <textarea id="address" name="address" class="form-control profile-field" rows="2" readonly><%= profile.address || '' %></textarea>
       </div>
 
       <div class="d-flex justify-content-between align-items-center gap-2 mt-4">
         <a class="btn btn-lime flex-grow-1" href="/">Back to Home</a>
-        <button type="submit" class="btn btn-lime flex-grow-1">Save Changes</button>
+        <button type="button" id="toggle-edit" class="btn btn-lime flex-grow-1">Edit</button>
       </div>
     </form>
+
+    <div class="d-flex justify-content-end mt-3">
+      <a href="/logout" class="btn btn-outline-danger">Log out</a>
+    </div>
 
     <div class="profile-card">
       <h6 class="mb-3">Change Password</h6>
@@ -100,29 +167,39 @@
   </div>
 
   <style>
-    body {
-      background: #f8f9fd;
-    }
-    .profile-card {
-      background: #fff;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-      border: 1px solid #eef1f5;
-    }
-    .btn-lime {
-      background: #7ac943;
-      color: #fff;
-      border: none;
-      font-weight: 600;
-      transition: transform 0.1s ease, box-shadow 0.1s ease;
-    }
-    .btn-lime:hover {
-      color: #fff;
-      transform: translateY(-1px);
-      box-shadow: 0 8px 16px rgba(122,201,67,0.3);
-    }
+    body { background: #f8f9fd; }
+    .profile-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid #eef1f5; }
+    .btn-lime { background: #7ac943; color: #fff; border: none; font-weight: 600; transition: transform 0.1s ease, box-shadow 0.1s ease; }
+    .btn-lime:hover { color: #fff; transform: translateY(-1px); box-shadow: 0 8px 16px rgba(122,201,67,0.3); }
   </style>
-  </div>
+  <script>
+    (function(){
+      const toggleBtn = document.getElementById('toggle-edit');
+      const fields = Array.from(document.querySelectorAll('.profile-field'));
+      const form = document.getElementById('profile-form');
+      const cardNumberInput = document.getElementById('cardNumber');
+      const hadMasked = cardNumberInput && cardNumberInput.value && cardNumberInput.value.includes('*');
+
+      toggleBtn.addEventListener('click', (e) => {
+        const editing = toggleBtn.dataset.editing === 'true';
+        if (!editing) {
+          e.preventDefault();
+          fields.forEach(f => f.readOnly = false);
+          if (hadMasked && cardNumberInput) {
+            cardNumberInput.value = '';
+          }
+          toggleBtn.textContent = 'Save Changes';
+          toggleBtn.type = 'submit';
+          toggleBtn.dataset.editing = 'true';
+          const first = fields.find(f => f.offsetParent !== null);
+          if (first) first.focus();
+        }
+      });
+
+      form.addEventListener('submit', () => {
+        fields.forEach(f => f.readOnly = false);
+      });
+    })();
+  </script>
 </body>
 </html>

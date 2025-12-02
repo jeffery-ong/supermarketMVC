@@ -1,27 +1,5 @@
 const db = require('../db');
 
-async function ensureTable() {
-  const sql = `
-    CREATE TABLE IF NOT EXISTS cart (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      user_id INT NOT NULL,
-      product_id INT NOT NULL,
-      quantity INT NOT NULL DEFAULT 1,
-      added_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE KEY cart_user_product (user_id, product_id),
-      INDEX idx_cart_user (user_id),
-      INDEX idx_cart_product (product_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-  `;
-  try {
-    await db.promise().query(sql);
-  } catch (err) {
-    console.error('Failed to ensure cart table exists:', err.message);
-  }
-}
-
-ensureTable();
-
 module.exports = {
   async upsertItem(userId, productId, quantity) {
     if (!userId || !productId || !quantity) return { affectedRows: 0 };

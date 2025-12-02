@@ -1,43 +1,37 @@
 const db = require('../db');
 
 async function ensureTables() {
-  await db
-    .promise()
-    .query(
-      `
-      CREATE TABLE IF NOT EXISTS invoices (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL,
-        number VARCHAR(50) NOT NULL,
-        issued_at DATETIME NOT NULL,
-        customer_name VARCHAR(255) NOT NULL,
-        billing TEXT,
-        payment_method VARCHAR(50) NOT NULL,
-        payment_last4 VARCHAR(8),
-        total DECIMAL(10,2) NOT NULL DEFAULT 0,
-        INDEX idx_invoices_user (user_id),
-        UNIQUE KEY uniq_invoice_number (number),
-        CONSTRAINT fk_invoices_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    `
-    );
+  // Invoices
+  await db.promise().query(`
+    CREATE TABLE IF NOT EXISTS invoices (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      number VARCHAR(50) NOT NULL,
+      issued_at DATETIME NOT NULL,
+      customer_name VARCHAR(255) NOT NULL,
+      billing TEXT,
+      payment_method VARCHAR(50),
+      payment_last4 VARCHAR(8),
+      total DECIMAL(10,2) NOT NULL DEFAULT 0,
+      INDEX idx_invoices_user (user_id),
+      UNIQUE KEY uniq_invoice_number (number),
+      CONSTRAINT fk_invoices_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
 
-  await db
-    .promise()
-    .query(
-      `
-      CREATE TABLE IF NOT EXISTS invoice_items (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        invoice_id INT NOT NULL,
-        name VARCHAR(255) NOT NULL,
-        quantity INT NOT NULL,
-        price DECIMAL(10,2) NOT NULL,
-        subtotal DECIMAL(10,2) NOT NULL,
-        INDEX idx_invoice_items_invoice (invoice_id),
-        CONSTRAINT fk_invoice_items_invoice FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    `
-    );
+  // Invoice items
+  await db.promise().query(`
+    CREATE TABLE IF NOT EXISTS invoice_items (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      invoice_id INT NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      quantity INT NOT NULL,
+      price DECIMAL(10,2) NOT NULL,
+      subtotal DECIMAL(10,2) NOT NULL,
+      INDEX idx_invoice_items_invoice (invoice_id),
+      CONSTRAINT fk_invoice_items_invoice FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
 }
 
 const init = ensureTables().catch(err =>
