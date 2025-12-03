@@ -37,6 +37,10 @@ async function ensureTables() {
       issued_at DATETIME NOT NULL,
       customer_name VARCHAR(255) NOT NULL,
       billing TEXT,
+      shipping_name VARCHAR(255),
+      shipping_email VARCHAR(255),
+      shipping_phone VARCHAR(50),
+      shipping_address TEXT,
       payment_method VARCHAR(50),
       payment_last4 VARCHAR(8),
       total DECIMAL(10,2) NOT NULL DEFAULT 0,
@@ -70,6 +74,16 @@ async function ensureTables() {
         console.error('Failed to add image column to invoice_items:', err.message);
       }
     });
+  await db
+    .promise()
+    .query(
+      'ALTER TABLE invoices ADD COLUMN shipping_name VARCHAR(255), ADD COLUMN shipping_email VARCHAR(255), ADD COLUMN shipping_phone VARCHAR(50), ADD COLUMN shipping_address TEXT'
+    )
+    .catch(err => {
+      if (err && err.code !== 'ER_DUP_FIELDNAME') {
+        console.error('Failed to add shipping columns to invoices:', err.message);
+      }
+    });
 }
 
 const init = ensureTables().catch(err =>
@@ -91,6 +105,10 @@ module.exports = {
         issuedAt,
         customerName,
         billing,
+        shippingName,
+        shippingEmail,
+        shippingPhone,
+        shippingAddress,
         paymentMethod,
         paymentLast4,
         total,
@@ -101,14 +119,18 @@ module.exports = {
 
       const [invResult] = await conn.query(
         `INSERT INTO invoices
-         (user_id, number, issued_at, customer_name, billing, payment_method, payment_last4, total)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+         (user_id, number, issued_at, customer_name, billing, shipping_name, shipping_email, shipping_phone, shipping_address, payment_method, payment_last4, total)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           userId,
           number,
           issuedAt,
           customerName,
           billing || null,
+          shippingName || null,
+          shippingEmail || null,
+          shippingPhone || null,
+          shippingAddress || null,
           paymentMethod,
           paymentLast4 || null,
           totals.total
@@ -172,6 +194,12 @@ module.exports = {
           name: inv.customer_name,
           billing: inv.billing || ''
         },
+        shipping: {
+          name: inv.shipping_name || '',
+          email: inv.shipping_email || '',
+          phone: inv.shipping_phone || '',
+          address: inv.shipping_address || ''
+        },
         payment: {
           method: inv.payment_method,
           last4: inv.payment_last4 || ''
@@ -221,6 +249,12 @@ module.exports = {
         customer: {
           name: inv.customer_name,
           billing: inv.billing || ''
+        },
+        shipping: {
+          name: inv.shipping_name || '',
+          email: inv.shipping_email || '',
+          phone: inv.shipping_phone || '',
+          address: inv.shipping_address || ''
         },
         payment: {
           method: inv.payment_method,

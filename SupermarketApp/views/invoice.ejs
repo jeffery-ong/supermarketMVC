@@ -53,6 +53,29 @@
         </div>
       </div>
     </div>
+    <% if (invoice.shipping && (invoice.shipping.address || invoice.shipping.name || invoice.shipping.phone || invoice.shipping.email)) { %>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <div class="card shadow-sm h-100">
+            <div class="card-body">
+              <div class="fw-semibold mb-2">Shipping To</div>
+              <% if (invoice.shipping.name) { %>
+                <div><%= invoice.shipping.name %></div>
+              <% } %>
+              <% if (invoice.shipping.phone) { %>
+                <div class="text-muted small">Phone: <%= invoice.shipping.phone %></div>
+              <% } %>
+              <% if (invoice.shipping.email) { %>
+                <div class="text-muted small">Email: <%= invoice.shipping.email %></div>
+              <% } %>
+              <% if (invoice.shipping.address) { %>
+                <div class="text-muted mt-2" style="white-space: pre-line;"><%= invoice.shipping.address %></div>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% } %>
 
     <div class="card shadow-sm">
       <div class="card-body">

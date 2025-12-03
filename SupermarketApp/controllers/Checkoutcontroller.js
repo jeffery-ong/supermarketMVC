@@ -135,6 +135,46 @@ module.exports = {
         req.flash('error', 'Cart is empty');
         return res.redirect('/cart');
       }
+      const billing = (req.body.billing || '').trim();
+      if (!billing) {
+        req.flash('error', 'Billing address is required.');
+        return res.redirect('/payment');
+      }
+      const shippingOption = (req.body.shippingOption || 'self').toLowerCase();
+      const shipName = (req.body.shipName || '').trim();
+      const shipEmail = (req.body.shipEmail || '').trim();
+      const shipPhone = (req.body.shipPhone || '').trim();
+      const shipAddress = (req.body.shipAddress || '').trim();
+      const shipping =
+        shippingOption === 'self'
+          ? {
+              name: dbUser.username || user.username || user.name || '',
+              email: dbUser.email || user.email || '',
+              phone: dbUser.contact || user.contact || '',
+              address: dbUser.address || user.address || billing
+            }
+          : {
+              name: shipName,
+              email: shipEmail,
+              phone: shipPhone,
+              address: shipAddress
+            };
+      if (!shipping.name || !shipping.email || !shipping.phone || !shipping.address) {
+        req.flash('error', 'Shipping name, email, phone, and address are required.');
+        return res.redirect('/payment');
+      }
+      const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+      if (!emailPattern.test(shipping.email)) {
+        req.flash('error', 'Enter a valid shipping email address.');
+        return res.redirect('/payment');
+      }
+      const phoneDigits = shipping.phone.replace(/[^\d]/g, '');
+      if (phoneDigits.length < 7 || phoneDigits.length > 15) {
+        req.flash('error', 'Enter a valid shipping phone number.');
+        return res.redirect('/payment');
+      }
+      shipping.phone = shipping.phone.trim();
+      shipping.address = shipping.address.trim();
 
       // Ensure cart in session reflects validated items
       req.session.cart = validItems.map(i => ({
@@ -200,7 +240,14 @@ module.exports = {
           name: isSaved
             ? (savedCard && savedCard.card_name) || user.name || user.username || 'Customer'
             : req.body.cardName || user.name || user.username || 'Customer',
-          billing: (req.body.billing || '').trim()
+          billing
+        },
+        shipping: {
+          name: shipping.name,
+          email: shipping.email,
+          phone: shipping.phone,
+          address: shipping.address,
+          option: shippingOption === 'self' ? 'self' : 'other'
         },
         payment: {
           method: isQr
@@ -237,6 +284,10 @@ module.exports = {
           issuedAt,
           customerName: invoice.customer.name,
           billing: invoice.customer.billing,
+          shippingName: invoice.shipping.name,
+          shippingEmail: invoice.shipping.email,
+          shippingPhone: invoice.shipping.phone,
+          shippingAddress: invoice.shipping.address,
           paymentMethod: invoice.payment.method,
           paymentLast4: invoice.payment.last4,
           total: invoice.total,

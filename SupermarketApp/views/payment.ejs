@@ -13,6 +13,10 @@
       border: 1px solid #e5e5e5;
       background: #f8f9fa;
     }
+    .muted-label {
+      font-size: 0.9rem;
+      color: #555;
+    }
   </style>
 </head>
 <body>
@@ -54,7 +58,7 @@
                 </label>
               </div>
               <div class="mt-2 text-muted small">
-                Saved for <%= savedCardSafe.card_name || (profile && profile.username) || 'you' %>. Card number is securely masked.
+                Saved for <%= savedCardSafe.card_name || (user && (user.username || user.name)) || 'you' %>. Card number is securely masked.
               </div>
             <% } %>
             <div class="form-check form-check-inline">
@@ -91,9 +95,45 @@
             </div>
           </div>
 
+          <div class="mb-3">
+            <div class="d-flex align-items-center justify-content-between">
+              <label class="form-label mb-1">Shipping Details</label>
+              <small class="text-muted">Who are you shipping to?</small>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="shippingOption" id="ship-self" value="self" checked>
+              <label class="form-check-label" for="ship-self">For yourself</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="shippingOption" id="ship-other" value="other">
+              <label class="form-check-label" for="ship-other">For someone else</label>
+            </div>
+          </div>
+
+          <div id="shipping-fields" class="border rounded p-3 bg-light mb-3">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label muted-label" for="ship-name">Recipient Name</label>
+                <input type="text" id="ship-name" name="shipName" class="form-control" placeholder="Recipient full name" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label muted-label" for="ship-phone">Phone Number</label>
+                <input type="tel" id="ship-phone" name="shipPhone" class="form-control" placeholder="+65 8123 4567" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label muted-label" for="ship-email">Email</label>
+                <input type="email" id="ship-email" name="shipEmail" class="form-control" placeholder="name@example.com" required>
+              </div>
+              <div class="col-12">
+                <label class="form-label muted-label" for="ship-address">Billing Address</label>
+                <textarea id="ship-address" name="shipAddress" rows="2" class="form-control" placeholder="123 Example Street, #01-01, Singapore 000000" minlength="5" required></textarea>
+              </div>
+            </div>
+          </div>
+
             <div class="mb-3">
-              <label class="form-label">Billing Address</label>
-              <textarea name="billing" rows="2" class="form-control"></textarea>
+              <label class="form-label">Shipping Address</label>
+              <textarea name="billing" rows="2" class="form-control" placeholder="123 Example Street, #01-01, Singapore 000000" minlength="5" required></textarea>
             </div>
           <div class="d-flex justify-content-between align-items-center">
             <a href="/cart" class="btn btn-secondary">Back to Cart</a>
@@ -155,6 +195,18 @@
       const qrFields = document.getElementById('qr-fields');
       const payButton = document.getElementById('pay-button');
       const cardInputs = cardFields.querySelectorAll('input');
+      const shipSelf = document.getElementById('ship-self');
+      const shipOther = document.getElementById('ship-other');
+      const shipName = document.getElementById('ship-name');
+      const shipPhone = document.getElementById('ship-phone');
+      const shipEmail = document.getElementById('ship-email');
+      const shipAddress = document.getElementById('ship-address');
+      const selfData = {
+        name: <%- JSON.stringify((typeof user !== 'undefined' && user && (user.username || user.name)) || '') %>,
+        email: <%- JSON.stringify((typeof user !== 'undefined' && user && user.email) || '') %>,
+        phone: <%- JSON.stringify((typeof user !== 'undefined' && user && user.contact) || '') %>,
+        address: <%- JSON.stringify((typeof user !== 'undefined' && user && user.address) || '') %>
+      };
 
       function toggleFields() {
         const useQr = methodQr.checked;
@@ -170,11 +222,33 @@
         });
       }
 
+      function fillSelfShipping() {
+        if (!shipName.value) shipName.value = selfData.name || '';
+        if (!shipEmail.value) shipEmail.value = selfData.email || '';
+        if (!shipPhone.value) shipPhone.value = selfData.phone || '';
+        if (!shipAddress.value) shipAddress.value = selfData.address || '';
+      }
+
+      function toggleShipping() {
+        const isSelf = shipSelf.checked;
+        if (isSelf) {
+          fillSelfShipping();
+        } else {
+          shipName.value = '';
+          shipEmail.value = '';
+          shipPhone.value = '';
+          shipAddress.value = '';
+        }
+      }
+
       methodCard.addEventListener('change', toggleFields);
       methodQr.addEventListener('change', toggleFields);
       if (methodSaved) methodSaved.addEventListener('change', toggleFields);
       if (methodSaved) methodSaved.checked = true; // default to saved card when available
+      shipSelf.addEventListener('change', toggleShipping);
+      shipOther.addEventListener('change', toggleShipping);
       toggleFields();
+      toggleShipping();
     })();
   </script>
 </body>
