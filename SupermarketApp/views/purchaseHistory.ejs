@@ -55,11 +55,14 @@
                 <td>$<%= Number(purchase.total).toFixed(2) %></td>
                 <td><%= new Date(purchase.purchasedAt).toLocaleString() %></td>
                 <td>
-                  <% if (purchase.invoiceId) { %>
-                    <a href="/invoice/<%= purchase.invoiceId %>" class="btn btn-sm btn-outline-primary">View Invoice</a>
-                  <% } else { %>
-                    <span class="text-muted">N/A</span>
-                  <% } %>
+                  <div class="d-flex justify-content-center gap-2 flex-wrap">
+                    <% if (purchase.invoiceId) { %>
+                      <a href="/invoice/<%= purchase.invoiceId %>" class="btn btn-sm btn-outline-primary">View Invoice</a>
+                    <% } else { %>
+                      <span class="text-muted">N/A</span>
+                    <% } %>
+                    <a href="/product/<%= purchase.productId %>#review" class="btn btn-sm btn-outline-secondary">Review</a>
+                  </div>
                 </td>
               </tr>
             <% }) %>

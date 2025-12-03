@@ -121,6 +121,7 @@ app.get('/logout', Authcontroller.logout);
 
 app.get('/shopping', checkAuthenticated, Productcontroller.shopping);
 app.get('/product/:id', checkAuthenticated, Productcontroller.viewProduct);
+app.post('/product/:id/review', checkAuthenticated, Productcontroller.addReview);
 
 app.get('/inventory', checkAuthenticated, Productcontroller.inventory);
 app.get('/inventory/add', checkAuthenticated, Productcontroller.showAdd);

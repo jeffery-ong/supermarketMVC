@@ -128,7 +128,18 @@ module.exports = {
     const schema = await loadSchema();
     const hasPriceColumn = !!schema.priceColumn;
     const hasTotalColumn = !!schema.hasTotalColumn;
-    const hasInvoiceId = !!schema.hasInvoiceId;
+    let hasInvoiceId = true; // force-enable invoice_id; ensure column exists
+    try {
+      await db
+        .promise()
+        .query('ALTER TABLE purchase_history ADD COLUMN invoice_id INT NULL')
+        .catch(err => {
+          if (err && err.code !== 'ER_DUP_FIELDNAME') throw err;
+        });
+    } catch (err) {
+      console.error('Failed to ensure invoice_id on purchase_history:', err.message);
+      hasInvoiceId = !!schema.hasInvoiceId;
+    }
     const columns = ['user_id', 'product_id', 'quantity'];
     if (hasPriceColumn) columns.push(schema.priceColumn);
     if (hasTotalColumn && schema.priceColumn !== 'total') columns.push('total');
@@ -154,6 +165,24 @@ module.exports = {
       INSERT INTO purchase_history (${columns.join(', ')})
       VALUES ?`;
     const [result] = await db.promise().query(sql, [rows]);
+
+    // Safety backfill in case invoice_id was omitted due to schema caching
+    if (invoiceId && hasInvoiceId && result && result.insertId && result.affectedRows) {
+      const firstId = Number(result.insertId);
+      const lastId = firstId + Number(result.affectedRows) - 1;
+      try {
+        await db
+          .promise()
+          .query('UPDATE purchase_history SET invoice_id = ? WHERE id BETWEEN ? AND ?', [
+            invoiceId,
+            firstId,
+            lastId
+          ]);
+      } catch (err) {
+        console.error('Failed to backfill invoice_id on purchase_history:', err.message);
+      }
+    }
+
     return result;
   }
 };

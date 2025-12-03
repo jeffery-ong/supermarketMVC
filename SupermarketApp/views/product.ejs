@@ -10,6 +10,7 @@
   <%- include('navbar') %>
 
   <main class="container py-5">
+    <% const reviewsSafe = (typeof reviews === 'undefined' || !Array.isArray(reviews)) ? [] : reviews; %>
     <div class="row g-4">
       <div class="col-md-6">
         <% const imageSrc = product.image || '/images/placeholder-product.jpg'; %>
@@ -30,6 +31,52 @@
           </div>
         </form>
         <a href="/shopping" class="btn btn-outline-secondary">Back to Shop</a>
+      </div>
+    </div>
+
+    <hr class="my-5">
+    <div id="reviews" class="row">
+      <div class="col-lg-6 mb-4">
+        <h3 class="h5">Leave a Review</h3>
+        <form action="/product/<%= product.id %>/review" method="POST" class="card p-3 shadow-sm">
+          <div class="mb-3">
+            <label class="form-label">Rating</label>
+            <select name="rating" class="form-select" required>
+              <option value="">Select rating</option>
+              <% [5,4,3,2,1].forEach(r => { %>
+                <option value="<%= r %>"><%= '★'.repeat(r) %><%= '☆'.repeat(5-r) %> (<%= r %>)</option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Review</label>
+            <textarea name="comment" rows="3" class="form-control" placeholder="Share your experience" maxlength="1000"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">Submit Review</button>
+        </form>
+      </div>
+      <div class="col-lg-6">
+        <h3 class="h5">Recent Reviews</h3>
+        <% if (reviewsSafe.length) { %>
+          <div class="list-group shadow-sm">
+            <% reviewsSafe.forEach(r => { %>
+              <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div class="fw-semibold"><%= r.username || 'User #' + r.user_id %></div>
+                  <div class="text-warning">
+                    <%= '★'.repeat(Number(r.rating) || 0) %><%= '☆'.repeat(5 - (Number(r.rating) || 0)) %>
+                  </div>
+                </div>
+                <% if (r.comment) { %>
+                  <p class="mb-1"><%= r.comment %></p>
+                <% } %>
+                <small class="text-muted"><%= new Date(r.created_at).toLocaleString() %></small>
+              </div>
+            <% }) %>
+          </div>
+        <% } else { %>
+          <p class="text-muted">No reviews yet. Be the first to review this product.</p>
+        <% } %>
       </div>
     </div>
   </main>

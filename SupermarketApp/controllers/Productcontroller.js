@@ -1,5 +1,6 @@
 const Product = require('../models/Product');
 const Favorite = require('../models/Favorite');
+const Review = require('../models/Review');
 
 exports.shopping = async (req, res, next) => {
   try {
@@ -120,15 +121,39 @@ exports.viewProduct = async (req, res) => {
     if (!product) {
       return res.status(404).render('error', { title: 'Error', message: 'Product not found' });
     }
+    const reviews = await Review.getForProduct(id, 50);
     const userId = req.session.user ? req.session.user.id : null;
     if (userId) {
       const favs = await Favorite.getForUser(userId);
       product.isFavorite = favs.includes(product.id);
     }
-    res.render('product', { title: product.name, product });
+    res.render('product', { title: product.name, product, reviews });
   } catch (e) {
     console.error(e);
     res.status(500).render('error', { title: 'Error', message: 'Load failed' });
+  }
+};
+
+exports.addReview = async (req, res) => {
+  try {
+    if (!req.session.user) return res.redirect('/login');
+    const productId = parseInt(req.params.id, 10);
+    if (!productId) return res.redirect('/shopping');
+    const rating = Math.min(5, Math.max(1, parseInt(req.body.rating, 10) || 0));
+    const comment = (req.body.comment || '').trim();
+
+    await Review.create({
+      userId: req.session.user.id,
+      productId,
+      rating,
+      comment
+    });
+    req.flash('success', 'Thanks for your review!');
+    res.redirect(`/product/${productId}#reviews`);
+  } catch (err) {
+    console.error('addReview error:', err.message);
+    req.flash('error', 'Could not submit review');
+    res.redirect(`/product/${req.params.id || ''}#reviews`);
   }
 };
 
