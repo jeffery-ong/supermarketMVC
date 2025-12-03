@@ -157,7 +157,7 @@ exports.add = async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'admin') {
       return res.redirect('/shopping');
     }
-    const { name, quantity, price, category } = req.body;
+    const { name, quantity, price, category, description } = req.body;
     const stock = Number(quantity);
     const numericPrice = Number(price);
     const imageFile = req.file ? req.file.filename : '';
@@ -167,7 +167,14 @@ exports.add = async (req, res) => {
       return res.redirect('/addProduct');
     }
 
-    await Product.create({ name, price: numericPrice, stock, image: imageFile, category });
+    await Product.create({
+      name,
+      price: numericPrice,
+      stock,
+      image: imageFile,
+      category,
+      description: description || ''
+    });
     req.flash('success', 'Product added');
     res.redirect('/inventory');
   } catch (e) {
@@ -204,13 +211,20 @@ exports.edit = async (req, res) => {
     if (!existing) {
       return res.redirect('/inventory');
     }
-    const { name, quantity, price, category } = req.body;
+    const { name, quantity, price, category, description } = req.body;
     const stock = Number(quantity);
     const numericPrice = Number(price);
     const existingFile = (existing.image || '').replace(/^\/images\//, '');
     const imageFile = req.file ? req.file.filename : existingFile;
 
-    await Product.update(id, { name, price: numericPrice, stock, image: imageFile, category });
+    await Product.update(id, {
+      name,
+      price: numericPrice,
+      stock,
+      image: imageFile,
+      category,
+      description: description || ''
+    });
     req.flash('success', 'Product updated');
     res.redirect('/inventory');
   } catch (e) {

@@ -2,6 +2,11 @@ const Product = require('../models/Product');
 const CartStore = require('../models/CartStore');
 const User = require('../models/User');
 
+const GST_RATE = 0.09;
+const DELIVERY_FEE = 5;
+const DELIVERY_THRESHOLD = 50;
+const round2 = num => Math.round(Number(num || 0) * 100) / 100;
+
 const ensureCart = req => {
   if (!Array.isArray(req.session.cart)) req.session.cart = [];
   return req.session.cart;
@@ -31,12 +36,31 @@ exports.viewCart = (req, res) => {
   const filteredCart = searchTerm
     ? cart.filter(item => item.name.toLowerCase().includes(searchTerm))
     : cart;
-  const total = filteredCart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const subtotal = round2(
+    filteredCart.reduce(
+      (sum, item) => round2(sum + round2((item.price || 0) * (item.quantity || 1))),
+      0
+    )
+  );
+  const gst = round2(subtotal * GST_RATE);
+  const preDeliveryTotal = round2(subtotal + gst);
+  const deliveryFee = preDeliveryTotal >= DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
+  const total = round2(preDeliveryTotal + deliveryFee);
   const errors = Array.isArray(req.session.cartErrors) ? req.session.cartErrors : [];
   const messages = Array.isArray(req.session.cartMessages) ? req.session.cartMessages : [];
   req.session.cartErrors = [];
   req.session.cartMessages = [];
-  res.render('cart', { title: 'Cart', cart: filteredCart, total, errors, messages, search: req.query.search || '' });
+  res.render('cart', {
+    title: 'Cart',
+    cart: filteredCart,
+    subtotal,
+    gst,
+    deliveryFee,
+    total,
+    errors,
+    messages,
+    search: req.query.search || ''
+  });
 };
 
 exports.addToCart = async (req, res) => {
@@ -52,9 +76,19 @@ exports.addToCart = async (req, res) => {
 
     const cart = ensureCart(req);
     const existing = cart.find(item => item.productId === product.id);
+    // Re-sync stock on the cart item so the UI max reflects latest inventory
+    if (existing) existing.stock = product.stock;
 
+    const currentQty = existing ? existing.quantity : 0;
+    const available = Math.max(0, product.stock - currentQty);
+    if (available <= 0) {
+      pushFeedback(req, 'error', 'No more stock available for this item.');
+      return res.redirect('/shopping');
+    }
+
+    const addQty = Math.min(qty, available);
     if (existing) {
-      existing.quantity = Math.min(existing.quantity + qty, product.stock);
+      existing.quantity = currentQty + addQty;
     } else {
       cart.push({
         productId: product.id,
@@ -62,7 +96,7 @@ exports.addToCart = async (req, res) => {
         price: product.price,
         image: product.image,
         stock: product.stock,
-        quantity: Math.min(qty, product.stock)
+        quantity: addQty
       });
     }
 
@@ -78,7 +112,11 @@ exports.addToCart = async (req, res) => {
       console.warn('Skipping cart persist: session user missing in DB');
     }
 
-    pushFeedback(req, 'message', 'Item added to cart.');
+    if (addQty < qty) {
+      pushFeedback(req, 'error', `Only ${addQty} left in stock. Added what was available.`);
+    } else {
+      pushFeedback(req, 'message', 'Item added to cart.');
+    }
     res.redirect('/cart');
   } catch (err) {
     console.error(err);
@@ -105,7 +143,8 @@ exports.updateQuantity = async (req, res) => {
       return res.redirect('/cart');
     }
 
-    item.quantity = Math.min(qty, product.stock);
+    const clampedQty = Math.min(qty, product.stock);
+    item.quantity = clampedQty;
 
     const userId = await ensureDbUser(req);
     if (userId) {
@@ -118,7 +157,11 @@ exports.updateQuantity = async (req, res) => {
       console.warn('Skipping cart persist: session user missing in DB');
     }
 
-    pushFeedback(req, 'message', 'Quantity updated.');
+    if (clampedQty < qty) {
+      pushFeedback(req, 'error', `Only ${clampedQty} left in stock for ${item.name}. Quantity adjusted.`);
+    } else {
+      pushFeedback(req, 'message', 'Quantity updated.');
+    }
     res.redirect('/cart');
   } catch (err) {
     console.error(err);

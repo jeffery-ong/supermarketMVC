@@ -24,18 +24,19 @@ const mapPurchase = row => {
     quantity,
     priceAtPurchase: unitPrice,
     total,
-    purchasedAt: row.purchased_at
+    purchasedAt: row.purchased_at,
+    invoiceId: row.invoice_id || null
   };
 };
 
 async function loadSchema() {
   if (!schemaPromise) {
-    schemaPromise = db
-      .promise()
-      .query('SHOW COLUMNS FROM purchase_history')
-      .then(([rows]) => {
+    schemaPromise = (async () => {
+      try {
+        const [rows] = await db.promise().query('SHOW COLUMNS FROM purchase_history');
         const fields = rows.map(r => r.Field);
         const hasTotalColumn = fields.includes('total');
+        const hasInvoiceId = fields.includes('invoice_id');
         const priceColumn = fields.includes('priceAtPurchase')
           ? 'priceAtPurchase'
           : fields.includes('price')
@@ -43,12 +44,25 @@ async function loadSchema() {
             : hasTotalColumn
               ? 'total'
               : null;
-        return { hasTotalColumn, priceColumn };
-      })
-      .catch(err => {
+
+        // Add invoice_id column if missing
+        if (!hasInvoiceId) {
+          await db
+            .promise()
+            .query('ALTER TABLE purchase_history ADD COLUMN invoice_id INT NULL')
+            .catch(err => {
+              if (err && err.code !== 'ER_DUP_FIELDNAME') {
+                console.error('Failed to add invoice_id to purchase_history:', err.message);
+              }
+            });
+        }
+
+        return { hasTotalColumn, priceColumn, hasInvoiceId: true };
+      } catch (err) {
         console.error('Failed to inspect purchase_history schema:', err.message);
-        return { hasTotalColumn: false, priceColumn: 'priceAtPurchase' };
-      });
+        return { hasTotalColumn: false, priceColumn: 'priceAtPurchase', hasInvoiceId: false };
+      }
+    })();
   }
   return schemaPromise;
 }
@@ -63,12 +77,14 @@ module.exports = {
     const computedTotalSelect = schema.priceColumn
       ? `COALESCE(${schema.hasTotalColumn ? 'ph.total' : 'NULL'}, ph.${schema.priceColumn} * ph.quantity) AS computed_total`
       : `${schema.hasTotalColumn ? 'ph.total' : 'NULL'} AS computed_total`;
+    const invoiceSelect = schema.hasInvoiceId ? 'ph.invoice_id' : 'NULL AS invoice_id';
 
     const [rows] = await db.promise().query(
       `SELECT ph.id, ph.user_id, ph.product_id, ph.quantity, ph.purchased_at,
               ${unitPriceSelect},
               ${storedTotalSelect},
               ${computedTotalSelect},
+              ${invoiceSelect},
               p.productName AS product_name
        FROM purchase_history ph
        JOIN products p ON p.id = ph.product_id
@@ -88,12 +104,14 @@ module.exports = {
     const computedTotalSelect = schema.priceColumn
       ? `COALESCE(${schema.hasTotalColumn ? 'ph.total' : 'NULL'}, ph.${schema.priceColumn} * ph.quantity) AS computed_total`
       : `${schema.hasTotalColumn ? 'ph.total' : 'NULL'} AS computed_total`;
+    const invoiceSelect = schema.hasInvoiceId ? 'ph.invoice_id' : 'NULL AS invoice_id';
 
     const [rows] = await db.promise().query(
       `SELECT ph.id, ph.user_id, ph.product_id, ph.quantity, ph.purchased_at,
               ${unitPriceSelect},
               ${storedTotalSelect},
               ${computedTotalSelect},
+              ${invoiceSelect},
               p.productName AS product_name
        FROM purchase_history ph
        JOIN products p ON p.id = ph.product_id
@@ -102,7 +120,7 @@ module.exports = {
     return rows.map(mapPurchase);
   },
 
-  async createBulk(userId, cartItems = []) {
+  async createBulk(userId, cartItems = [], invoiceId = null) {
     if (!userId || !Array.isArray(cartItems) || cartItems.length === 0) {
       return { affectedRows: 0 };
     }
@@ -110,9 +128,11 @@ module.exports = {
     const schema = await loadSchema();
     const hasPriceColumn = !!schema.priceColumn;
     const hasTotalColumn = !!schema.hasTotalColumn;
+    const hasInvoiceId = !!schema.hasInvoiceId;
     const columns = ['user_id', 'product_id', 'quantity'];
     if (hasPriceColumn) columns.push(schema.priceColumn);
     if (hasTotalColumn && schema.priceColumn !== 'total') columns.push('total');
+    if (hasInvoiceId) columns.push('invoice_id');
 
     const rows = cartItems
       .filter(item => item && (item.productId || item.product_id) && item.quantity)
@@ -124,6 +144,7 @@ module.exports = {
         const base = [userId, productId, qty];
         if (hasPriceColumn) base.push(schema.priceColumn === 'total' ? total : price);
         if (hasTotalColumn && schema.priceColumn !== 'total') base.push(total);
+        if (hasInvoiceId) base.push(invoiceId || null);
         return base;
       });
 

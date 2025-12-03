@@ -43,6 +43,9 @@
                 <label for="category">Category:</label><br>
                 <input type="text" id="category" name="category" value="<%= product.category || '' %>" placeholder="e.g. Beverages" required><br><br>
 
+                <label for="description">Description:</label><br>
+                <textarea id="description" name="description" rows="3" placeholder="Short product description"><%= product.description || '' %></textarea><br><br>
+
                 <label for="image">Current Image:</label><br>
                 <input type="text" name="currentImage" value="<%= product.image %>" readonly><br>
                 <img src="<%= product.image %>" width="20%"><br><br>

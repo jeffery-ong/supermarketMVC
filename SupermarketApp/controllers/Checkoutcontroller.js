@@ -4,6 +4,12 @@ const PH = require('../models/ph');
 const Invoice = require('../models/Invoice');
 const Product = require('../models/Product');
 const User = require('../models/User');
+const PaymentMethod = require('../models/PaymentMethod');
+
+const GST_RATE = 0.09;
+const DELIVERY_FEE = 5;
+const DELIVERY_THRESHOLD = 50;
+const round2 = num => Math.round(Number(num || 0) * 100) / 100;
 
 function normalizeCart(rawCart) {
   return rawCart.map((c, idx) => {
@@ -56,8 +62,37 @@ module.exports = {
       req.flash('error', 'Cart is empty');
       return res.redirect('/cart');
     }
-    const total = cart.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
-    res.render('payment', { title: 'Payment', cart, total });
+    const subtotal = round2(
+      cart.reduce((sum, item) => sum + round2((item.price || 0) * (item.quantity || 1)), 0)
+    );
+    const gst = round2(subtotal * GST_RATE);
+    const preDeliveryTotal = round2(subtotal + gst);
+    const deliveryFee = preDeliveryTotal >= DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
+    const total = round2(preDeliveryTotal + deliveryFee);
+    PaymentMethod.getByUser(user.id)
+      .then(savedCard => {
+        res.render('payment', {
+          title: 'Payment',
+          cart,
+          subtotal,
+          gst,
+          deliveryFee,
+          total,
+          savedCard
+        });
+      })
+      .catch(err => {
+        console.error('Failed to load saved card:', err.message);
+        res.render('payment', {
+          title: 'Payment',
+          cart,
+          subtotal,
+          gst,
+          deliveryFee,
+          total,
+          savedCard: null
+        });
+      });
   },
 
   processPayment: async (req, res) => {
@@ -110,9 +145,11 @@ module.exports = {
         product: i.product
       }));
       const method = (req.body.method || 'card').toLowerCase();
+      const savedCard = await PaymentMethod.getByUser(userId);
+      const isSaved = method === 'saved';
       const isQr = method === 'paynow' || method === 'paylah' || method === 'qr';
       let cardNumber = '';
-      if (!isQr) {
+      if (!isQr && !isSaved) {
         const cardNumberRaw = (req.body.cardNumber || '').trim();
         cardNumber = cardNumberRaw.replace(/\D/g, '');
         if (cardNumber.length !== 16) {
@@ -137,26 +174,46 @@ module.exports = {
           return res.redirect('/payment');
         }
       }
+      if (isSaved) {
+        if (!savedCard || !savedCard.last4) {
+          req.flash('error', 'No saved card found. Please use another payment method.');
+          return res.redirect('/payment');
+        }
+      }
       const items = validItems.map((item, idx) => ({
         name: item.name || `Item ${idx + 1}`,
         quantity: item.quantity,
         price: item.price,
-        subtotal: item.price * item.quantity
+        subtotal: round2(item.price * item.quantity),
+        image: item.product && item.product.image
       }));
-      const total = items.reduce((sum, i) => sum + i.subtotal, 0);
+      const subtotal = items.reduce((sum, i) => sum + i.subtotal, 0);
+      const gst = round2(subtotal * GST_RATE);
+      const preDeliveryTotal = round2(subtotal + gst);
+      const deliveryFee = preDeliveryTotal >= DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
+      const total = round2(preDeliveryTotal + deliveryFee);
       const issuedAt = new Date();
       const invoice = {
         number: `INV-${Date.now()}`,
         issuedAt,
         customer: {
-          name: req.body.cardName || user.name || user.username || 'Customer',
+          name: isSaved
+            ? (savedCard && savedCard.card_name) || user.name || user.username || 'Customer'
+            : req.body.cardName || user.name || user.username || 'Customer',
           billing: (req.body.billing || '').trim()
         },
         payment: {
-          method: isQr ? 'PayNow / PayLah QR' : 'Card',
-          last4: isQr ? '' : cardNumber.slice(-4)
+          method: isQr
+            ? 'PayNow / PayLah QR'
+            : isSaved
+              ? `Saved Card${savedCard && savedCard.label ? ` (${savedCard.label})` : ''}`
+              : 'Card',
+          last4: isQr ? '' : isSaved ? savedCard.last4 : cardNumber.slice(-4)
         },
         items,
+        subtotal,
+        gst,
+        deliveryFee,
         total
       };
       const normalized = validItems.map(i => ({
@@ -164,7 +221,13 @@ module.exports = {
         quantity: i.quantity,
         price: i.price
       }));
-      await PH.createBulk(userId, normalized);
+      try {
+        await Product.decreaseBulk(validItems);
+      } catch (stockErr) {
+        console.error('Failed to decrease inventory:', stockErr.message);
+        req.flash('error', stockErr.message || 'Failed to update stock.');
+        return res.redirect('/cart');
+      }
       let savedInvoice = invoice;
       let invoiceId;
       try {
@@ -184,6 +247,11 @@ module.exports = {
         req.session.lastInvoiceId = invoiceId;
       } catch (dbInvoiceErr) {
         console.error('Failed to persist invoice:', dbInvoiceErr.message);
+      }
+      try {
+        await PH.createBulk(userId, normalized, invoiceId || null);
+      } catch (phErr) {
+        console.error('Failed to persist purchase history:', phErr.message);
       }
       try {
         await CartStore.clearUser(user.id);

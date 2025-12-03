@@ -30,6 +30,7 @@
               <th>Quantity</th>
               <th>Total Paid</th>
               <th>Purchased At</th>
+              <th>Invoice</th>
             </tr>
           </thead>
           <tbody>
@@ -53,6 +54,13 @@
                 <td><%= purchase.quantity %></td>
                 <td>$<%= Number(purchase.total).toFixed(2) %></td>
                 <td><%= new Date(purchase.purchasedAt).toLocaleString() %></td>
+                <td>
+                  <% if (purchase.invoiceId) { %>
+                    <a href="/invoice/<%= purchase.invoiceId %>" class="btn btn-sm btn-outline-primary">View Invoice</a>
+                  <% } else { %>
+                    <span class="text-muted">N/A</span>
+                  <% } %>
+                </td>
               </tr>
             <% }) %>
           </tbody>
