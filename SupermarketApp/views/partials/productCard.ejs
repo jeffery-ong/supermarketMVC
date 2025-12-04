@@ -1,5 +1,11 @@
 <% const favouriteHighlightFlag = typeof favouriteHighlight !== 'undefined' ? favouriteHighlight : false; %>
-<div class="card h-100 <%= product.isFavorite ? 'border-warning' : '' %> <%= favouriteHighlightFlag ? 'favorite-highlight shadow-sm' : '' %>">
+<% const discountPct = Number(product.discount || 0); %>
+<% const hasDiscountPrice = product.discountPrice !== null && product.discountPrice !== undefined; %>
+<% const hasDiscount = discountPct > 0 || hasDiscountPrice; %>
+<% const effectiveDiscountPrice = hasDiscountPrice
+  ? Number(product.discountPrice)
+  : Number((Number(product.price || 0) * (1 - discountPct / 100)).toFixed(2)); %>
+<div class="card h-100 <%= product.isFavorite ? 'border-warning' : '' %> <%= favouriteHighlightFlag ? 'favorite-highlight shadow-sm' : '' %> <%= hasDiscount ? 'discounted-card' : '' %>">
   <a href="/product/<%= product.id %>">
     <img src="<%= product.image %>" class="card-img-top" alt="<%= product.name %>" style="height: 180px; object-fit: contain; background: #f8f9fa;">
   </a>
@@ -21,7 +27,17 @@
       <span class="me-1"><%- renderStars(avg) %></span>
       <span class="text-muted"><%= avg.toFixed(1) %> stars (<%= cnt %> review<%= cnt === 1 ? '' : 's' %>)</span>
     </div>
-    <p class="card-text fw-semibold mb-1">$<%= Number(product.price).toFixed(2) %></p>
+    <div class="mb-1">
+      <% if (hasDiscount) { %>
+        <div class="d-flex align-items-center gap-2">
+          <span class="text-muted text-decoration-line-through">$<%= Number(product.price).toFixed(2) %></span>
+          <span class="discount-pill">-<%= discountPct.toFixed(0) %>%</span>
+        </div>
+        <div class="fs-5 fw-bold price-new">$<%= effectiveDiscountPrice.toFixed(2) %></div>
+      <% } else { %>
+        <p class="card-text fw-semibold mb-1">$<%= Number(product.price).toFixed(2) %></p>
+      <% } %>
+    </div>
     <% if (product.description) { %>
       <p class="card-text text-muted small mb-2"><%= product.description.length > 80 ? product.description.slice(0, 77) + '...' : product.description %></p>
     <% } %>

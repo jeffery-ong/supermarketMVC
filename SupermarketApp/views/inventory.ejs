@@ -31,6 +31,8 @@
           <th>Product Image</th>
           <th>Quantity</th>
           <th>Price</th>
+          <th>Discount (%)</th>
+          <th>Discount Price</th>
           <th>Description</th>
           <th>Actions</th>
         </tr>
@@ -62,6 +64,14 @@
             </td>
             <td><%= displayQuantity %></td>
             <td>$<%= Number(product.price || 0).toFixed(2) %></td>
+            <td><%= Number(product.discount || 0).toFixed(2) %>%</td>
+            <td>
+              <% if (product.discountPrice !== null && product.discountPrice !== undefined) { %>
+                $<%= Number(product.discountPrice).toFixed(2) %>
+              <% } else { %>
+                <span class="text-muted">-</span>
+              <% } %>
+            </td>
             <td><%= product.description || '' %></td>
             <td>
               <a href="/inventory/edit/<%= product.id %>" class="btn btn-sm btn-warning">Edit</a>

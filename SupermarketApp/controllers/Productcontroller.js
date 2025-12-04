@@ -12,7 +12,7 @@ exports.shopping = async (req, res, next) => {
     const isFav = p => favoriteSet.has(Number(p.id));
     const searchTerm = (req.query.search || '').trim().toLowerCase();
     const sortParamRaw = (req.query.sort || '').toLowerCase();
-    const sortOptions = ['price-asc', 'price-desc', 'name-asc', 'name-desc', 'discount-asc', 'discount-desc'];
+    const sortOptions = ['price-asc', 'price-desc', 'name-asc', 'name-desc', 'discounted-only'];
     const sortParam = sortOptions.includes(sortParamRaw) ? sortParamRaw : '';
     const allCategories = Array.from(
       new Set(
@@ -51,24 +51,29 @@ exports.shopping = async (req, res, next) => {
     const noResults = (searchTerm || categoryParam) && working.length === 0;
 
     const sortFns = {
-      // use effective discounted price if present, otherwise list price
-      'discount-asc': (a, b) => {
-        const aPrice = Number.isFinite(a.discountPrice) ? a.discountPrice : Number(a.price || 0);
-        const bPrice = Number.isFinite(b.discountPrice) ? b.discountPrice : Number(b.price || 0);
-        return aPrice - bPrice;
-      },
-      'discount-desc': (a, b) => {
-        const aPrice = Number.isFinite(a.discountPrice) ? a.discountPrice : Number(a.price || 0);
-        const bPrice = Number.isFinite(b.discountPrice) ? b.discountPrice : Number(b.price || 0);
-        return bPrice - aPrice;
-      },
       'price-asc': (a, b) => safeNum(a.price) - safeNum(b.price),
       'price-desc': (a, b) => safeNum(b.price) - safeNum(a.price),
       'name-asc': (a, b) => (a.name || '').localeCompare(b.name || ''),
       'name-desc': (a, b) => (b.name || '').localeCompare(a.name || '')
     };
 
-    if (sortParam && sortFns[sortParam]) {
+    if (sortParam === 'discounted-only') {
+      // keep only products with a real discount (either discount% > 0 or discounted price lower than base price)
+      working = working.filter(p => {
+        const base = Number(p.price || 0);
+        const pct = Number(p.discount || 0);
+        const effective = Number.isFinite(p.discountPrice) ? Number(p.discountPrice) : null;
+        const hasPct = pct > 0;
+        const hasEffectiveCut = effective !== null && effective < base;
+        return hasPct || hasEffectiveCut;
+      });
+      // sort by effective discounted price ascending (fallback to price)
+      working = [...working].sort((a, b) => {
+        const aPrice = Number.isFinite(a.discountPrice) ? Number(a.discountPrice) : Number(a.price || 0);
+        const bPrice = Number.isFinite(b.discountPrice) ? Number(b.discountPrice) : Number(b.price || 0);
+        return aPrice - bPrice;
+      });
+    } else if (sortParam && sortFns[sortParam]) {
       working = [...working].sort(sortFns[sortParam]);
     }
 
