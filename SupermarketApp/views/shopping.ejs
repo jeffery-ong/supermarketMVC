@@ -6,24 +6,45 @@
   <link rel="stylesheet" href="/styles.css" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <style>
-    .favorite-highlight {
-      background: #fff8e1;
-      border: 1px solid #f0c24b;
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --border: #e5e7eb;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --text: #0f172a;
     }
-    .discounted-card {
-      border: 1px solid #dc3545;
-      box-shadow: 0 10px 25px rgba(220, 53, 69, 0.12);
-    }
-    .discount-pill {
-      background: linear-gradient(135deg, #dc3545, #fd7e14);
+    body { background: var(--bg); color: var(--text); }
+    .favorite-highlight { background: #fff8e1; border: 1px solid #f0c24b; }
+    .hero {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
       color: #fff;
-      font-weight: 700;
-      border-radius: 999px;
-      padding: 4px 10px;
-      font-size: 0.8rem;
+      border-radius: 14px;
+      padding: 24px 20px;
+      box-shadow: 0 12px 32px rgba(37, 99, 235, 0.2);
     }
-    .price-new {
-      color: #c1121f;
+    .filter-shell {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+    }
+    .section-shell {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+    }
+    .form-control, .form-select {
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    .badge-saved {
+      background: rgba(245, 158, 11, 0.15);
+      color: #92400e;
+      border: 1px solid rgba(245, 158, 11, 0.4);
     }
   </style>
 </head>
@@ -51,46 +72,59 @@
       </div>
     <% } %>
 
-    <h1 class="mb-4 text-center">Shop</h1>
+    <div class="hero mb-4 d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
+      <div>
+        <div class="text-uppercase small fw-semibold" style="letter-spacing:0.08em;">Browse</div>
+        <h2 class="mb-1">Find your next purchase</h2>
+        <div class="small">Filter by category, sort by price, and save favourites.</div>
+      </div>
+      <div class="text-md-end text-start">
+        <div class="small mb-1">Total products</div>
+        <div class="h4 mb-0"><%= (products || []).length %></div>
+      </div>
+    </div>
+
     <% const searchVal = (typeof search !== 'undefined' && search != null) ? search : ''; %>
     <% const sortVal = (typeof sort !== 'undefined' && sort != null) ? sort : ''; %>
     <% const categoryVal = (typeof category !== 'undefined' && category != null) ? category : ''; %>
     <% const categoryOptions = (typeof categories !== 'undefined' && Array.isArray(categories)) ? categories : []; %>
 
-    <form class="row g-3 mb-4 justify-content-center" method="GET" action="/shopping">
-      <div class="col-lg-6 col-md-12">
-        <input type="text" name="search" class="form-control" placeholder="Search products or categories" value="<%= searchVal %>">
-      </div>
-      <div class="col-md-6 col-lg-3">
-        <select name="category" class="form-select" onchange="this.form.submit()">
-          <option value="" <%= categoryVal === '' ? 'selected' : '' %>>All categories</option>
-          <% categoryOptions.forEach(cat => { %>
-            <option value="<%= cat %>" <%= categoryVal === cat ? 'selected' : '' %>><%= cat %></option>
-          <% }) %>
-        </select>
-      </div>
-      <div class="col-md-6 col-lg-3">
-        <select name="sort" class="form-select" onchange="this.form.submit()">
-          <option value="" <%= sortVal === '' ? 'selected' : '' %>>Default order</option>
-          <option value="name-asc" <%= sortVal === 'name-asc' ? 'selected' : '' %>>Name: A to Z</option>
-          <option value="name-desc" <%= sortVal === 'name-desc' ? 'selected' : '' %>>Name: Z to A</option>
-          <option value="price-asc" <%= sortVal === 'price-asc' ? 'selected' : '' %>>Price: Low to High</option>
-          <option value="price-desc" <%= sortVal === 'price-desc' ? 'selected' : '' %>>Price: High to Low</option>
-          <option value="discounted-only" <%= sortVal === 'discounted-only' ? 'selected' : '' %>>Discounted items</option>
-        </select>
-      </div>
-    </form>
+    <div class="filter-shell mb-4">
+      <form class="row g-3 align-items-center" method="GET" action="/shopping">
+        <div class="col-lg-6 col-md-12">
+          <input type="text" name="search" class="form-control" placeholder="Search products or categories" value="<%= searchVal %>">
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <select name="category" class="form-select" onchange="this.form.submit()">
+            <option value="" <%= categoryVal === '' ? 'selected' : '' %>>All categories</option>
+            <% categoryOptions.forEach(cat => { %>
+              <option value="<%= cat %>" <%= categoryVal === cat ? 'selected' : '' %>><%= cat %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <select name="sort" class="form-select" onchange="this.form.submit()">
+            <option value="" <%= sortVal === '' ? 'selected' : '' %>>Default order</option>
+            <option value="name-asc" <%= sortVal === 'name-asc' ? 'selected' : '' %>>Name: A to Z</option>
+            <option value="name-desc" <%= sortVal === 'name-desc' ? 'selected' : '' %>>Name: Z to A</option>
+            <option value="price-asc" <%= sortVal === 'price-asc' ? 'selected' : '' %>>Price: Low to High</option>
+            <option value="price-desc" <%= sortVal === 'price-desc' ? 'selected' : '' %>>Price: High to Low</option>
+            <option value="discounted-only" <%= sortVal === 'discounted-only' ? 'selected' : '' %>>Discounted items</option>
+          </select>
+        </div>
+      </form>
+    </div>
 
     <% const favs = (typeof favorites !== 'undefined' && Array.isArray(favorites)) ? favorites : []; %>
     <% if (favs.length) { %>
-      <section class="container py-4">
+      <section class="section-shell mb-4">
         <div class="d-flex align-items-center mb-3">
           <h2 class="h5 mb-0 me-2">Favourites</h2>
-          <span class="badge bg-warning text-dark">Saved</span>
+          <span class="badge badge-saved">Saved</span>
         </div>
         <div class="row g-3">
           <% favs.forEach(product => { %>
-            <div class="col-md-3">
+            <div class="col-xl-3 col-lg-4 col-md-6">
               <%- include('partials/productCard', { product: product, session: session, favouriteHighlight: true }) %>
             </div>
           <% }) %>
@@ -98,11 +132,16 @@
       </section>
     <% } %>
 
-    <section class="container py-4">
-      <h2 class="h5 mb-3">Products</h2>
+    <section class="section-shell">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h5 mb-0">Products</h2>
+        <% if (sortVal === 'discounted-only') { %>
+          <span class="pill">Showing discounts</span>
+        <% } %>
+      </div>
       <div class="row g-3">
         <% (products || []).forEach(product => { %>
-          <div class="col-md-3">
+          <div class="col-xl-3 col-lg-4 col-md-6">
             <%- include('partials/productCard', { product: product, session: session }) %>
           </div>
         <% }) %>

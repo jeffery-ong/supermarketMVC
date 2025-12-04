@@ -6,12 +6,55 @@
   <link rel="stylesheet" href="/styles.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --border: #e5e7eb;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --text: #0f172a;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+    }
+    .review-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+      padding: 12px 14px;
+    }
     .review-card img {
       width: 72px;
       height: 72px;
       object-fit: cover;
-      border-radius: 0.5rem;
-      background: #f8f9fa;
+      border-radius: 10px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+    }
+    .star {
+      color: #f59e0b;
+      font-size: 14px;
+    }
+    .hero {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #fff;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 12px 32px rgba(37, 99, 235, 0.2);
+      margin-bottom: 16px;
     }
   </style>
 </head>
@@ -19,14 +62,23 @@
   <%- include('navbar') %>
 
   <main class="container py-4">
-    <h1 class="mb-4">My Reviews</h1>
+    <div class="hero d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div>
+        <div class="text-uppercase small fw-semibold" style="letter-spacing:0.08em;">Feedback</div>
+        <h2 class="mb-0">My Reviews</h2>
+      </div>
+      <div class="text-end">
+        <div class="small">Total reviews</div>
+        <div class="h4 mb-0"><%= (reviews || []).length %></div>
+      </div>
+    </div>
     <% const starFilled = '&#9733;'; const starEmpty = '&#9734;'; const renderStars = rating => starFilled.repeat(rating) + starEmpty.repeat(5 - rating); %>
     <% if (!reviews || !reviews.length) { %>
       <div class="alert alert-info">You have not submitted any reviews yet.</div>
     <% } else { %>
-      <div class="list-group">
+      <div class="d-flex flex-column gap-3">
         <% reviews.forEach(r => { %>
-          <div class="list-group-item review-card">
+          <div class="review-card">
             <div class="row g-3 align-items-center">
               <div class="col-auto">
                 <img src="<%= r.product_image || '/images/placeholder-product.jpg' %>" alt="<%= r.product_name %>">
@@ -34,7 +86,11 @@
               <div class="col">
                 <div class="d-flex justify-content-between align-items-center">
                   <div class="fw-semibold"><a href="/product/<%= r.product_id %>"><%= r.product_name %></a></div>
-                  <div class="text-warning"><%- renderStars(Number(r.rating) || 0) %></div>
+                  <div class="text-warning">
+                    <% for (let i = 1; i <= 5; i++) { %>
+                      <span class="star"><%= i <= (Number(r.rating) || 0) ? '★' : '☆' %></span>
+                    <% } %>
+                  </div>
                 </div>
                 <% if (r.comment) { %>
                   <p class="mb-1"><%= r.comment %></p>

@@ -20,36 +20,8 @@ module.exports = {
   },
 
   async update(req, res) {
-    try {
-      const id = Number(req.params.id);
-      if (!Number.isFinite(id)) return res.redirect('/users');
-
-      const target = await User.findById(id);
-      const normalized = target ? User.normalizeUser(target) : null;
-      if (!normalized) {
-        req.flash('error', 'User not found');
-        return res.redirect('/users');
-      }
-
-      const { username, email, contact, address, role } = req.body;
-      const cleanRole = role !== undefined ? sanitizeRole(role) : normalized.role;
-      if (normalized.role === 'admin' && cleanRole !== 'admin') {
-        req.flash('error', 'Admins cannot be demoted to user');
-        return res.redirect('/users');
-      }
-      await User.update(id, { username, email, contact, address, role: cleanRole });
-
-      if (req.session.user && req.session.user.id === id) {
-        Object.assign(req.session.user, { username, email, contact, address, role: cleanRole });
-      }
-
-      req.flash('success', 'User updated');
-      res.redirect('/users');
-    } catch (err) {
-      console.error('Update user error:', err);
-      req.flash('error', 'Update failed');
-      res.redirect('/users');
-    }
+    req.flash('error', 'Editing users is disabled. Use promote or delete only.');
+    return res.redirect('/users');
   },
 
   async promote(req, res) {
@@ -72,33 +44,8 @@ module.exports = {
   },
 
   async demote(req, res) {
-    try {
-      const id = Number(req.params.id);
-      if (!Number.isFinite(id)) return res.redirect('/users');
-
-      const target = await User.findById(id);
-      const normalized = target ? User.normalizeUser(target) : null;
-      if (!normalized) {
-        req.flash('error', 'User not found');
-        return res.redirect('/users');
-      }
-      if (normalized.role === 'admin') {
-        req.flash('error', 'Admins cannot be demoted to user');
-        return res.redirect('/users');
-      }
-
-      await User.setRole(id, 'user');
-      if (req.session.user && req.session.user.id === id) {
-        req.session.user.role = 'user';
-      }
-
-      req.flash('success', 'User demoted to user');
-      res.redirect('/users');
-    } catch (err) {
-      console.error('Demote user error:', err);
-      req.flash('error', 'Demotion failed');
-      res.redirect('/users');
-    }
+    req.flash('error', 'Demotion is disabled. Use promote or delete only.');
+    return res.redirect('/users');
   },
 
   async remove(req, res) {

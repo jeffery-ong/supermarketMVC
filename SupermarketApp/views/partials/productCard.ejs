@@ -33,9 +33,9 @@
           <span class="text-muted text-decoration-line-through">$<%= Number(product.price).toFixed(2) %></span>
           <span class="discount-pill">-<%= discountPct.toFixed(0) %>%</span>
         </div>
-        <div class="fs-5 fw-bold price-new">$<%= effectiveDiscountPrice.toFixed(2) %></div>
+        <div class="price-main price-new">$<%= effectiveDiscountPrice.toFixed(2) %></div>
       <% } else { %>
-        <p class="card-text fw-semibold mb-1">$<%= Number(product.price).toFixed(2) %></p>
+        <p class="card-text price-main mb-1">$<%= Number(product.price).toFixed(2) %></p>
       <% } %>
     </div>
     <% if (product.description) { %>

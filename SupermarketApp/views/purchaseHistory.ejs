@@ -5,24 +5,87 @@
   <title><%= title %></title>
   <link rel="stylesheet" href="/styles.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #fff;
+      --border: #e5e7eb;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --text: #0f172a;
+    }
+    body { background: var(--bg); color: var(--text); }
+    .ph-shell {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+      padding: 20px;
+    }
+    .ph-table thead th {
+      border: none;
+      background: #f1f5f9;
+      color: #475569;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.3px;
+      padding: 12px 10px;
+    }
+    .ph-table tbody td {
+      border-top: 1px solid var(--border);
+      vertical-align: middle;
+      padding: 14px 10px;
+    }
+    .ph-table tbody tr:hover td { background: #f8fafc; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+    }
+    .product-thumb {
+      width: 70px;
+      height: 70px;
+      object-fit: contain;
+      background: #f8fafc;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    .btn-soft {
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-weight: 600;
+    }
+    .search-box { min-width: 240px; }
+  </style>
 </head>
 <body>
   <%- include('navbar') %>
 
   <main class="container py-5">
     <% const searchVal = (typeof search !== 'undefined' && search != null) ? search : ''; %>
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-      <h1 class="mb-0"><%= isAdmin ? 'All Purchase History' : 'Your Purchase History' %></h1>
-      <form class="d-flex" method="GET" action="/purchase-history">
-        <input type="text" name="search" class="form-control form-control-sm me-2" placeholder="Search by product or ID" value="<%= searchVal %>">
-        <button class="btn btn-sm btn-outline-primary" type="submit">Search</button>
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+      <h2 class="mb-0 fw-bold"><%= isAdmin ? 'All Purchase History' : 'Your Purchase History' %></h2>
+      <form class="d-flex align-items-center gap-2" method="GET" action="/purchase-history">
+        <input type="text" name="search" class="form-control form-control-sm search-box" placeholder="Search by product or ID" value="<%= searchVal %>">
+        <button class="btn btn-soft btn-sm" type="submit">Search</button>
       </form>
     </div>
 
     <% if (purchases && purchases.length) { %>
-      <div class="table-responsive">
-        <table class="table table-striped align-middle text-center">
-          <thead class="table-dark">
+      <div class="ph-shell">
+        <div class="table-responsive">
+          <table class="table ph-table align-middle text-center">
+            <thead>
             <tr>
               <th>#</th>
               <% if (isAdmin) { %><th>User</th><% } %>
@@ -41,9 +104,9 @@
                 <td class="text-start">
                   <div class="d-flex align-items-center gap-3">
                     <% if (purchase.product && purchase.product.image) { %>
-                      <img src="<%= purchase.product.image %>" alt="<%= purchase.product.name %>" class="rounded" style="width:70px;height:70px;object-fit:contain;background:#f7f8fb;">
+                      <img src="<%= purchase.product.image %>" alt="<%= purchase.product.name %>" class="product-thumb">
                     <% } else { %>
-                      <span class="badge bg-secondary">N/A</span>
+                      <span class="pill">No image</span>
                     <% } %>
                     <div>
                       <div class="fw-semibold"><%= purchase.product ? purchase.product.name : purchase.productName %></div>
@@ -68,6 +131,7 @@
             <% }) %>
           </tbody>
         </table>
+      </div>
       </div>
     <% } else { %>
       <div class="text-center py-5">

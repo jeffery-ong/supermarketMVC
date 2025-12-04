@@ -142,6 +142,8 @@ app.get('/cart', checkAuthenticated, Cartcontroller.viewCart);
 app.post('/cart/add', checkAuthenticated, Cartcontroller.addToCart);
 app.post('/cart/update/:productId', checkAuthenticated, Cartcontroller.updateQuantity);
 app.post('/cart/remove/:productId', checkAuthenticated, Cartcontroller.removeItem);
+app.get('/cart/clear', checkAuthenticated, Cartcontroller.clearCart);
+app.post('/cart/clear', checkAuthenticated, Cartcontroller.clearCart);
 
 // Payment / checkout flow
 app.get('/payment', checkAuthenticated, Checkoutcontroller.showPayment);

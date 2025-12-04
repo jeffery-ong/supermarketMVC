@@ -195,3 +195,21 @@ exports.removeItem = async (req, res) => {
 
   res.redirect('/cart');
 };
+
+exports.clearCart = async (req, res) => {
+  // wipe session cart and persisted cart (if any)
+  req.session.cart = [];
+  const userId = await ensureDbUser(req);
+  if (userId) {
+    try {
+      await CartStore.clearUser(userId);
+    } catch (dbErr) {
+      console.error('Failed to clear DB cart:', dbErr.message);
+    }
+  }
+  pushFeedback(req, 'message', 'Cart cleared.');
+  if (typeof req.session.save === 'function') {
+    return req.session.save(() => res.redirect('/cart'));
+  }
+  res.redirect('/cart');
+};

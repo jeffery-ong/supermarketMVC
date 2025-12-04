@@ -6,6 +6,151 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <title>Inventory - Supermarket App</title>
+  <style>
+    :root {
+      --accent: #f59e0b;
+      --accent-dark: #d97706;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --panel: #ffffff;
+      --bg: #f8fafc;
+      --text: #0f172a;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+    }
+    .inventory-shell {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      padding: 18px;
+    }
+    .inv-tabs {
+      display: flex;
+      gap: 18px;
+      padding: 0;
+      margin: 0 0 8px 0;
+      list-style: none;
+      border-bottom: 1px solid var(--border);
+    }
+    .inv-tabs li {
+      padding-bottom: 10px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      position: relative;
+    }
+    .inv-tabs li.active {
+      color: var(--text);
+    }
+    .inv-tabs li.active::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -1px;
+      height: 3px;
+      background: var(--accent);
+      border-radius: 3px 3px 0 0;
+    }
+    .filter-bar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    .filter-bar label {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .ghost-input, .ghost-select {
+      background: #f9fafb;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 12px;
+      min-width: 160px;
+      color: var(--text);
+    }
+    .ghost-input:focus, .ghost-select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+    }
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .btn-ghost {
+      border: 1px solid var(--border);
+      background: #f9fafb;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-weight: 600;
+    }
+    .btn-primary-modern {
+      background: linear-gradient(135deg, #f59e0b, #fbbf24);
+      border: none;
+      color: #111827;
+      font-weight: 700;
+      border-radius: 10px;
+      padding: 9px 16px;
+      box-shadow: 0 10px 20px rgba(245, 158, 11, 0.25);
+    }
+    .table.inventory-table thead th {
+      border: none;
+      background: #f9fafb;
+      color: #4b5563;
+      font-weight: 600;
+      padding: 12px 10px;
+    }
+    .table.inventory-table tbody td {
+      border-top: 1px solid var(--border);
+      vertical-align: middle;
+      padding: 12px 10px;
+    }
+    .table.inventory-table tbody tr:hover td {
+      background: #f8fafc;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 12px;
+      background: rgba(16, 185, 129, 0.1);
+      color: #047857;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    .status-badge.out {
+      background: rgba(239, 68, 68, 0.08);
+      color: #b91c1c;
+      border-color: rgba(239, 68, 68, 0.2);
+    }
+    .mini {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .product-thumb {
+      width: 48px;
+      height: 48px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+    }
+  </style>
 </head>
 <body>
   <%- include('navbar') %>
@@ -21,66 +166,96 @@
       <div class="alert alert-success"><%= invMessages.join(', ') %></div>
     <% } %>
 
-    <h2>Product Inventory</h2>
-    <p><a href="/addProduct" class="btn btn-primary">Add New Product</a></p>
+    <div class="toolbar">
+      <div>
+        <h2 class="mb-0">Inventory</h2>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="/addProduct" class="btn btn-primary-modern btn-sm text-decoration-none">+ Add Product</a>
+      </div>
+    </div>
 
-    <table class="table table-bordered">
-      <thead>
-        <tr>
-          <th>Product Name</th>
-          <th>Product Image</th>
-          <th>Quantity</th>
-          <th>Price</th>
-          <th>Discount (%)</th>
-          <th>Discount Price</th>
-          <th>Description</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% (Array.isArray(products) ? products : []).forEach(function(product) { %>
-          <% const displayName = product.name || product.productName || 'Unnamed'; %>
-          <% const rawImage = (product.image || product.productImage || '').trim(); %>
-          <% const imagePath = (() => {
-               if (!rawImage) return '';
-               const lower = rawImage.toLowerCase();
-               if (rawImage.startsWith('http') || rawImage.startsWith('/')) return rawImage;
-               if (lower.startsWith('images/')) return `/${rawImage}`;
-               if (!/\.(jpe?g|png|gif|webp|svg)$/.test(lower)) {
-                 const base = lower.replace(/\s+/g, '-');
-                 return `/images/${base}.jpg`;
-               }
-               return `/images/${rawImage}`;
-             })(); %>
-          <% const displayQuantity = (product.quantity ?? product.stock ?? product.inventory ?? 0); %>
-          <tr>
-            <td><a href="/product/<%= product.id %>"><%= displayName %></a></td>
-            <td>
-              <% if (imagePath) { %>
-                <img src="<%= imagePath %>" width="60" alt="<%= displayName %>">
-              <% } else { %>
-                <span class="text-muted">No image</span>
-              <% } %>
-            </td>
-            <td><%= displayQuantity %></td>
-            <td>$<%= Number(product.price || 0).toFixed(2) %></td>
-            <td><%= Number(product.discount || 0).toFixed(2) %>%</td>
-            <td>
-              <% if (product.discountPrice !== null && product.discountPrice !== undefined) { %>
-                $<%= Number(product.discountPrice).toFixed(2) %>
-              <% } else { %>
-                <span class="text-muted">-</span>
-              <% } %>
-            </td>
-            <td><%= product.description || '' %></td>
-            <td>
-              <a href="/inventory/edit/<%= product.id %>" class="btn btn-sm btn-warning">Edit</a>
-              <a href="/inventory/delete/<%= product.id %>" class="btn btn-sm btn-danger" onclick="return confirm('Delete this product?')">Delete</a>
-            </td>
-          </tr>
-        <% }); %>
-      </tbody>
-    </table>
+    <div class="inventory-shell">
+      <div class="filter-bar">
+        <input type="search" class="ghost-input flex-grow-1" placeholder="Search products...">
+        <button class="btn btn-primary-modern btn-sm">Search</button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table inventory-table align-middle">
+          <thead>
+            <tr>
+              <th>Image</th>
+              <th>Product Name</th>
+              <th>Category</th>
+              <th>Status</th>
+              <th>Stock</th>
+              <th>Price</th>
+              <th>Discount</th>
+              <th>Discount Price</th>
+              <th style="width: 140px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% (Array.isArray(products) ? products : []).forEach(function(product) { %>
+              <% const displayName = product.name || product.productName || 'Unnamed'; %>
+              <% const rawImage = (product.image || product.productImage || '').trim(); %>
+              <% const imagePath = (() => {
+                   if (!rawImage) return '';
+                   const lower = rawImage.toLowerCase();
+                   if (rawImage.startsWith('http') || rawImage.startsWith('/')) return rawImage;
+                   if (lower.startsWith('images/')) return `/${rawImage}`;
+                   if (!/\.(jpe?g|png|gif|webp|svg)$/.test(lower)) {
+                     const base = lower.replace(/\s+/g, '-');
+                     return `/images/${base}.jpg`;
+                   }
+                   return `/images/${rawImage}`;
+                 })(); %>
+              <% const displayQuantity = (product.quantity ?? product.stock ?? product.inventory ?? 0); %>
+              <% const inStock = Number(displayQuantity) > 0; %>
+              <tr>
+                <td>
+                  <% if (imagePath) { %>
+                    <img src="<%= imagePath %>" class="product-thumb" alt="<%= displayName %>">
+                  <% } else { %>
+                    <span class="mini">No image</span>
+                  <% } %>
+                </td>
+                <td>
+                  <div><a href="/product/<%= product.id %>"><%= displayName %></a></div>
+                  <div class="mini">ID: <%= product.id %></div>
+                </td>
+                <td><span class="mini"><%= product.category || 'Uncategorized' %></span></td>
+                <td>
+                  <span class="status-badge <%= inStock ? '' : 'out' %>">
+                    <%= inStock ? 'Ready' : 'Out of Stock' %>
+                  </span>
+                </td>
+                <td><%= displayQuantity %></td>
+                <td>$<%= Number(product.price || 0).toFixed(2) %></td>
+                <td><%= Number(product.discount || 0).toFixed(2) %>%</td>
+                <td>
+                  <% if (product.discountPrice !== null && product.discountPrice !== undefined) { %>
+                    $<%= Number(product.discountPrice).toFixed(2) %>
+                  <% } else { %>
+                    <span class="mini">-</span>
+                  <% } %>
+                </td>
+                <td>
+                  <div class="d-flex gap-2">
+                    <a href="/inventory/edit/<%= product.id %>" class="btn btn-sm btn-outline-secondary">Edit</a>
+                    <a href="/inventory/delete/<%= product.id %>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this product?')">Delete</a>
+                  </div>
+                </td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+      <div class="d-flex justify-content-between align-items-center mt-2 mini">
+        <div>Showing <%= (Array.isArray(products) ? products.length : 0) %> products</div>
+      </div>
+    </div>
   </div>
 </body>
 </html>
