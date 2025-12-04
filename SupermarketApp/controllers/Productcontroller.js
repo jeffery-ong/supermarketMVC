@@ -12,7 +12,7 @@ exports.shopping = async (req, res, next) => {
     const isFav = p => favoriteSet.has(Number(p.id));
     const searchTerm = (req.query.search || '').trim().toLowerCase();
     const sortParamRaw = (req.query.sort || '').toLowerCase();
-    const sortOptions = ['price-asc', 'price-desc', 'name-asc', 'name-desc'];
+    const sortOptions = ['price-asc', 'price-desc', 'name-asc', 'name-desc', 'discount-asc', 'discount-desc'];
     const sortParam = sortOptions.includes(sortParamRaw) ? sortParamRaw : '';
     const allCategories = Array.from(
       new Set(
@@ -51,6 +51,17 @@ exports.shopping = async (req, res, next) => {
     const noResults = (searchTerm || categoryParam) && working.length === 0;
 
     const sortFns = {
+      // use effective discounted price if present, otherwise list price
+      'discount-asc': (a, b) => {
+        const aPrice = Number.isFinite(a.discountPrice) ? a.discountPrice : Number(a.price || 0);
+        const bPrice = Number.isFinite(b.discountPrice) ? b.discountPrice : Number(b.price || 0);
+        return aPrice - bPrice;
+      },
+      'discount-desc': (a, b) => {
+        const aPrice = Number.isFinite(a.discountPrice) ? a.discountPrice : Number(a.price || 0);
+        const bPrice = Number.isFinite(b.discountPrice) ? b.discountPrice : Number(b.price || 0);
+        return bPrice - aPrice;
+      },
       'price-asc': (a, b) => safeNum(a.price) - safeNum(b.price),
       'price-desc': (a, b) => safeNum(b.price) - safeNum(a.price),
       'name-asc': (a, b) => (a.name || '').localeCompare(b.name || ''),
@@ -193,9 +204,10 @@ exports.add = async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'admin') {
       return res.redirect('/shopping');
     }
-    const { name, quantity, price, category, description } = req.body;
+    const { name, quantity, price, category, description, discount } = req.body;
     const stock = Number(quantity);
     const numericPrice = Number(price);
+    const numericDiscount = Number(discount || 0);
     const imageFile = req.file ? req.file.filename : '';
 
     if (!name || Number.isNaN(numericPrice) || Number.isNaN(stock)) {
@@ -206,6 +218,7 @@ exports.add = async (req, res) => {
     await Product.create({
       name,
       price: numericPrice,
+      discount: Number.isNaN(numericDiscount) ? 0 : numericDiscount,
       stock,
       image: imageFile,
       category,
@@ -247,15 +260,17 @@ exports.edit = async (req, res) => {
     if (!existing) {
       return res.redirect('/inventory');
     }
-    const { name, quantity, price, category, description } = req.body;
+    const { name, quantity, price, category, description, discount } = req.body;
     const stock = Number(quantity);
     const numericPrice = Number(price);
+    const numericDiscount = Number(discount || 0);
     const existingFile = (existing.image || '').replace(/^\/images\//, '');
     const imageFile = req.file ? req.file.filename : existingFile;
 
     await Product.update(id, {
       name,
       price: numericPrice,
+      discount: Number.isNaN(numericDiscount) ? 0 : numericDiscount,
       stock,
       image: imageFile,
       category,

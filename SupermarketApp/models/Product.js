@@ -8,6 +8,14 @@ db.promise()
       console.error('Failed to add description column to products:', err.message);
     }
   });
+// Add discount columns if missing
+db.promise()
+  .query('ALTER TABLE products ADD COLUMN discount DECIMAL(6,2) NOT NULL DEFAULT 0 AFTER price')
+  .catch(err => {
+    if (err && err.code !== 'ER_DUP_FIELDNAME') {
+      console.error('Failed to add discount column to products:', err.message);
+    }
+  });
 
 const hydrate = row => {
   let imagePath = row.image || '';
@@ -17,15 +25,24 @@ const hydrate = row => {
     imagePath = `/images/${imagePath}`;
   }
 
+  const numericPrice = Number(row.price);
+  const discountPct =
+    row.discount !== undefined && row.discount !== null ? Number(row.discount) : 0;
+  const computedDiscountPrice =
+    discountPct > 0 && Number.isFinite(numericPrice)
+      ? Number((numericPrice * (1 - discountPct / 100)).toFixed(2))
+      : null;
+
   return {
     id: row.id,
     name: row.name,
-    price: Number(row.price),
+    price: numericPrice,
     stock: row.stock,
     image: imagePath,
     description: row.description || '',
     category: row.category || '',
-    discount: 0,
+    discount: discountPct,
+    discountPrice: computedDiscountPrice,
     offerMessage: '',
     isFavorite: false, // set per-user in controller
     ratingAverage: row.ratingAverage ? Number(row.ratingAverage) : 0,
@@ -41,6 +58,7 @@ module.exports = {
                 p.productName       AS name,
                 p.quantity          AS stock,
                 p.price,
+                p.discount,
                 p.image,
                 p.category,
                 p.description,
@@ -65,6 +83,7 @@ module.exports = {
                 p.productName       AS name,
                 p.quantity          AS stock,
                 p.price,
+                p.discount,
                 p.image,
                 p.category,
                 p.description,
@@ -83,12 +102,12 @@ module.exports = {
     });
   },
 
-  create({ name, price, stock, image = '', category = '', description = '' }) {
+  create({ name, price, stock, image = '', category = '', description = '', discount = 0 }) {
     return new Promise((resolve, reject) => {
       db.query(
-        `INSERT INTO products (productName, quantity, price, image, category, description)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [name, stock, price, image, category, description],
+        `INSERT INTO products (productName, quantity, price, discount, image, category, description)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [name, stock, price, discount, image, category, description],
         (err, result) => {
           if (err) return reject(err);
           resolve(result.insertId);
@@ -97,13 +116,13 @@ module.exports = {
     });
   },
 
-  update(id, { name, price, stock, image = '', category = '', description = '' }) {
+  update(id, { name, price, stock, image = '', category = '', description = '', discount = 0 }) {
     return new Promise((resolve, reject) => {
       db.query(
         `UPDATE products
-         SET productName = ?, quantity = ?, price = ?, image = ?, category = ?, description = ?
+         SET productName = ?, quantity = ?, price = ?, discount = ?, image = ?, category = ?, description = ?
          WHERE id = ?`,
-        [name, stock, price, image, category, description, id],
+        [name, stock, price, discount, image, category, description, id],
         err => {
           if (err) return reject(err);
           resolve();

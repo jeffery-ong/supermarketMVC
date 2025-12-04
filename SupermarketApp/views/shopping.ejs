@@ -10,6 +10,21 @@
       background: #fff8e1;
       border: 1px solid #f0c24b;
     }
+    .discounted-card {
+      border: 1px solid #dc3545;
+      box-shadow: 0 10px 25px rgba(220, 53, 69, 0.12);
+    }
+    .discount-pill {
+      background: linear-gradient(135deg, #dc3545, #fd7e14);
+      color: #fff;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.8rem;
+    }
+    .price-new {
+      color: #c1121f;
+    }
   </style>
 </head>
 <body>
@@ -61,6 +76,8 @@
           <option value="name-desc" <%= sortVal === 'name-desc' ? 'selected' : '' %>>Name: Z to A</option>
           <option value="price-asc" <%= sortVal === 'price-asc' ? 'selected' : '' %>>Price: Low to High</option>
           <option value="price-desc" <%= sortVal === 'price-desc' ? 'selected' : '' %>>Price: High to Low</option>
+          <option value="discount-asc" <%= sortVal === 'discount-asc' ? 'selected' : '' %>>Discounted price: Low to High</option>
+          <option value="discount-desc" <%= sortVal === 'discount-desc' ? 'selected' : '' %>>Discounted price: High to Low</option>
         </select>
       </div>
     </form>
