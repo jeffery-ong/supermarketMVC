@@ -168,7 +168,15 @@
 
     <div class="toolbar">
       <div>
-        <h2 class="mb-0">Inventory</h2>
+        <div class="d-flex align-items-center gap-2">
+          <h2 class="mb-0">Inventory</h2>
+          <% if (lowStockOnly) { %>
+            <span class="badge bg-warning text-dark">Low stock ≤ <%= lowStockThreshold %></span>
+            <a href="/inventory" class="mini text-decoration-none">Show all (<%= totalProducts %>)</a>
+          <% } else { %>
+            <a href="/inventory?lowStock=1" class="mini text-decoration-none">View low stock only</a>
+          <% } %>
+        </div>
       </div>
       <div class="d-flex gap-2">
         <a href="/addProduct" class="btn btn-primary-modern btn-sm text-decoration-none">+ Add Product</a>
@@ -253,7 +261,13 @@
         </table>
       </div>
       <div class="d-flex justify-content-between align-items-center mt-2 mini">
-        <div>Showing <%= (Array.isArray(products) ? products.length : 0) %> products</div>
+        <div>
+          <% if (lowStockOnly) { %>
+            Showing <%= (Array.isArray(products) ? products.length : 0) %> low-stock products (≤ <%= lowStockThreshold %>)
+          <% } else { %>
+            Showing <%= (Array.isArray(products) ? products.length : 0) %> products
+          <% } %>
+        </div>
       </div>
     </div>
   </div>

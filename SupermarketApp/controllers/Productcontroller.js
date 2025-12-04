@@ -189,11 +189,29 @@ exports.inventory = async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'admin') {
       return res.redirect('/shopping');
     }
+    const LOW_STOCK_THRESHOLD = 20;
+    const lowStockOnly = (req.query.lowStock || '').toString() === '1';
     const products = await Product.getAll();
-    res.render('inventory', { title: 'Inventory', products });
+    const filtered = lowStockOnly
+      ? products.filter(p => Number(p.stock ?? 0) <= LOW_STOCK_THRESHOLD)
+      : products;
+
+    res.render('inventory', {
+      title: 'Inventory',
+      products: filtered,
+      lowStockOnly,
+      lowStockThreshold: LOW_STOCK_THRESHOLD,
+      totalProducts: products.length
+    });
   } catch (e) {
     console.error(e);
-    res.render('inventory', { title: 'Inventory', products: [] });
+    res.render('inventory', {
+      title: 'Inventory',
+      products: [],
+      lowStockOnly: false,
+      lowStockThreshold: 20,
+      totalProducts: 0
+    });
   }
 };
 

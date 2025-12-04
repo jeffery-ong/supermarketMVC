@@ -3,6 +3,8 @@ const User = require('../models/User');
 const Product = require('../models/Product');
 const Review = require('../models/Review');
 
+const LOW_STOCK_THRESHOLD = 20;
+
 function formatCurrency(num) {
   return Number(num || 0).toFixed(2);
 }
@@ -38,6 +40,8 @@ module.exports = {
       const topCustomer = topCustomerId ? userMap.get(topCustomerId) : null;
       const topCustomerSpent = topCustomerId ? totals.customerSpend.get(topCustomerId) : 0;
 
+      const lowStockCount = products.filter(p => Number(p.stock ?? 0) <= LOW_STOCK_THRESHOLD).length;
+
       const recentOrders = purchases.slice(0, 6).map(p => {
         const customer = userMap.get(p.userId) || {};
         const product = products.find(prod => prod.id === p.productId) || {};
@@ -57,7 +61,9 @@ module.exports = {
           revenue: formatCurrency(totals.revenue),
           orders: totals.orders,
           users: users.length,
-          products: products.length
+          products: products.length,
+          lowStock: lowStockCount,
+          lowStockThreshold: LOW_STOCK_THRESHOLD
         },
         bestProduct: bestProduct
           ? { name: bestProduct.name, sold: bestProductSold, revenue: formatCurrency(bestProductSold * bestProduct.price) }

@@ -53,8 +53,8 @@
       </div>
     </div>
 
-    <div class="row g-3 mb-4">
-      <div class="col-md-3">
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-5 g-3 mb-4">
+      <div class="col">
         <a href="/admin/revenue" class="text-decoration-none">
           <div class="card card-glass p-3 h-100">
             <div class="metric-label">Total Revenue</div>
@@ -62,7 +62,7 @@
           </div>
         </a>
       </div>
-      <div class="col-md-3">
+      <div class="col">
         <a href="/purchase-history" class="text-decoration-none">
           <div class="card card-glass p-3 h-100">
             <div class="metric-label">Total Orders</div>
@@ -70,7 +70,7 @@
           </div>
         </a>
       </div>
-      <div class="col-md-3">
+      <div class="col">
         <a href="/users" class="text-decoration-none">
           <div class="card card-glass p-3 h-100">
             <div class="metric-label">Total Users</div>
@@ -78,11 +78,24 @@
           </div>
         </a>
       </div>
-      <div class="col-md-3">
+      <div class="col">
         <a href="/inventory" class="text-decoration-none">
           <div class="card card-glass p-3 h-100">
             <div class="metric-label">Products</div>
             <div class="metric-value"><%= stats.products %></div>
+          </div>
+        </a>
+      </div>
+      <div class="col">
+        <a href="/inventory?lowStock=1" class="text-decoration-none">
+          <div class="card card-glass p-3 h-100">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="metric-label">Low Stock</div>
+                <div class="metric-value"><%= stats.lowStock %></div>
+              </div>
+              <span class="badge bg-warning text-dark">≤ <%= stats.lowStockThreshold %></span>
+            </div>
           </div>
         </a>
       </div>
