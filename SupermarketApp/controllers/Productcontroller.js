@@ -7,6 +7,7 @@ exports.shopping = async (req, res, next) => {
     const allProducts = await Product.getAll();
     const userId = req.session.user ? req.session.user.id : null;
     const favoriteIds = userId ? await Favorite.getForUser(userId) : [];
+    const reviewStats = await Review.getAveragesForProductIds(allProducts.map(p => p.id));
     const favoriteSet = new Set(favoriteIds.map(Number));
     const isFav = p => favoriteSet.has(Number(p.id));
     const searchTerm = (req.query.search || '').trim().toLowerCase();
@@ -28,9 +29,12 @@ exports.shopping = async (req, res, next) => {
       return Number.isFinite(n) ? n : 0;
     };
 
-    // Mark favorites on the full list
+    // Mark favorites and rating stats on the full list
     allProducts.forEach(p => {
       p.isFavorite = isFav(p);
+      const stats = reviewStats[p.id] || { average: 0, count: 0 };
+      p.ratingAverage = stats.average || 0;
+      p.ratingCount = stats.count || 0;
     });
 
     const favorites = allProducts.filter(p => p.isFavorite);
@@ -122,12 +126,19 @@ exports.viewProduct = async (req, res) => {
       return res.status(404).render('error', { title: 'Error', message: 'Product not found' });
     }
     const reviews = await Review.getForProduct(id, 50);
+    const reviewStats = await Review.getAverageForProduct(id);
     const userId = req.session.user ? req.session.user.id : null;
     if (userId) {
       const favs = await Favorite.getForUser(userId);
       product.isFavorite = favs.includes(product.id);
     }
-    res.render('product', { title: product.name, product, reviews });
+    res.render('product', {
+      title: product.name,
+      product,
+      reviews,
+      ratingAverage: reviewStats.average || 0,
+      ratingCount: reviewStats.count || 0
+    });
   } catch (e) {
     console.error(e);
     res.status(500).render('error', { title: 'Error', message: 'Load failed' });

@@ -57,6 +57,7 @@ module.exports = {
   showPayment: (req, res) => {
     const user = req.session.user;
     if (!user) return res.redirect('/login');
+    const role = (user.role || '').toLowerCase();
     const cart = req.session.cart || [];
     if (!cart.length) {
       req.flash('error', 'Cart is empty');
@@ -69,6 +70,17 @@ module.exports = {
     const preDeliveryTotal = round2(subtotal + gst);
     const deliveryFee = preDeliveryTotal >= DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
     const total = round2(preDeliveryTotal + deliveryFee);
+    if (role === 'admin') {
+      return res.render('payment', {
+        title: 'Payment',
+        cart,
+        subtotal,
+        gst,
+        deliveryFee,
+        total,
+        savedCard: null
+      });
+    }
     PaymentMethod.getByUser(user.id)
       .then(savedCard => {
         res.render('payment', {
@@ -112,6 +124,7 @@ module.exports = {
         });
         return;
       }
+      const role = (user.role || '').toLowerCase();
       const rawCart = Array.isArray(req.session.cart) ? req.session.cart : [];
       if (!rawCart.length) {
         req.flash('error', 'Cart is empty');
@@ -185,8 +198,8 @@ module.exports = {
         product: i.product
       }));
       const method = (req.body.method || 'card').toLowerCase();
-      const savedCard = await PaymentMethod.getByUser(userId);
-      const isSaved = method === 'saved';
+      const savedCard = role === 'admin' ? null : await PaymentMethod.getByUser(userId);
+      const isSaved = role === 'admin' ? false : method === 'saved';
       const isQr = method === 'paynow' || method === 'paylah' || method === 'qr';
       let cardNumber = '';
       if (!isQr && !isSaved) {
@@ -219,6 +232,10 @@ module.exports = {
           req.flash('error', 'No saved card found. Please use another payment method.');
           return res.redirect('/payment');
         }
+      }
+      if (role === 'admin' && method === 'saved') {
+        req.flash('error', 'Admins cannot use saved cards.');
+        return res.redirect('/payment');
       }
       const items = validItems.map((item, idx) => ({
         name: item.name || `Item ${idx + 1}`,

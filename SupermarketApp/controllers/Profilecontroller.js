@@ -10,7 +10,11 @@ module.exports = {
         req.flash('error', 'Profile not found');
         return res.redirect('/login');
       }
-      const payment = await PaymentMethod.getByUser(req.session.user.id);
+      const isAdmin = (normalized.role || '').toLowerCase() === 'admin';
+      if (isAdmin) {
+        await PaymentMethod.removeByUser(req.session.user.id);
+      }
+      const payment = isAdmin ? null : await PaymentMethod.getByUser(req.session.user.id);
       res.render('profile', {
         title: 'Profile',
         profile: normalized,
@@ -24,6 +28,7 @@ module.exports = {
   async update(req, res) {
     try {
       const id = req.session.user.id;
+      const role = (req.session.user.role || '').toLowerCase();
       const {
         username = '',
         email = '',
@@ -55,14 +60,18 @@ module.exports = {
         address: address.trim()
       });
 
-      // Persist payment method (stores last4/label/expiry/cvv, never full number)
-      await PaymentMethod.upsert(id, {
-        cardNumber,
-        cardName,
-        cardLabel,
-        expiry,
-        cvv
-      });
+      if (role === 'admin') {
+        await PaymentMethod.removeByUser(id);
+      } else {
+        // Persist payment method (stores last4/label/expiry/cvv, never full number)
+        await PaymentMethod.upsert(id, {
+          cardNumber,
+          cardName,
+          cardLabel,
+          expiry,
+          cvv
+        });
+      }
 
       req.flash('success', 'Profile updated');
       res.redirect('/profile');

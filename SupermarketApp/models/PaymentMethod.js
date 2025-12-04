@@ -62,5 +62,11 @@ module.exports = {
         cvv = VALUES(cvv)
     `;
     await db.promise().query(sql, [userId, cName || null, last4, label || null, exp || null, cvvClean]);
+  },
+
+  async removeByUser(userId) {
+    if (!userId) return;
+    await ready;
+    await db.promise().query('DELETE FROM payment_methods WHERE user_id = ?', [userId]);
   }
 };

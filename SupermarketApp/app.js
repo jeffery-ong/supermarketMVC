@@ -16,6 +16,8 @@ const phcontroller = require('./controllers/phcontroller');
 const Invoicecontroller = require('./controllers/Invoicecontroller');
 const UserAdmincontroller = require('./controllers/UserAdmincontroller');
 const Profilecontroller = require('./controllers/Profilecontroller');
+const Reviewcontroller = require('./controllers/Reviewcontroller');
+const AdminDashboardcontroller = require('./controllers/AdminDashboardcontroller');
 
 const app = express();
 
@@ -97,7 +99,8 @@ function checkAuthenticated(req, res, next) {
 }
 
 function checkAdmin(req, res, next) {
-  if (!req.session.user || req.session.user.role !== 'admin') return res.redirect('/shopping');
+  const role = req.session.user && req.session.user.role ? req.session.user.role.toLowerCase() : '';
+  if (!req.session.user || role !== 'admin') return res.redirect('/shopping');
   next();
 }
 
@@ -119,8 +122,9 @@ app.get('/register', Authcontroller.showRegister);
 app.post('/register', Authcontroller.register);
 app.get('/logout', Authcontroller.logout);
 
-app.get('/shopping', checkAuthenticated, Productcontroller.shopping);
-app.get('/product/:id', checkAuthenticated, Productcontroller.viewProduct);
+// Public shop browsing; reviews still require login
+app.get('/shopping', Productcontroller.shopping);
+app.get('/product/:id', Productcontroller.viewProduct);
 app.post('/product/:id/review', checkAuthenticated, Productcontroller.addReview);
 
 app.get('/inventory', checkAuthenticated, Productcontroller.inventory);
@@ -133,10 +137,11 @@ app.get('/inventory/delete/:id', checkAuthenticated, Productcontroller.delete);
 app.get('/addProduct', checkAuthenticated, Productcontroller.showAdd);
 app.post('/addProduct', checkAuthenticated, upload.single('image'), Productcontroller.add);
 
-app.get('/cart', Cartcontroller.viewCart);
-app.post('/cart/add', Cartcontroller.addToCart);
-app.post('/cart/update/:productId', Cartcontroller.updateQuantity);
-app.post('/cart/remove/:productId', Cartcontroller.removeItem);
+// Cart actions require login
+app.get('/cart', checkAuthenticated, Cartcontroller.viewCart);
+app.post('/cart/add', checkAuthenticated, Cartcontroller.addToCart);
+app.post('/cart/update/:productId', checkAuthenticated, Cartcontroller.updateQuantity);
+app.post('/cart/remove/:productId', checkAuthenticated, Cartcontroller.removeItem);
 
 // Payment / checkout flow
 app.get('/payment', checkAuthenticated, Checkoutcontroller.showPayment);
@@ -155,6 +160,7 @@ app.all('/product/:id/favorite', checkAuthenticated, Productcontroller.toggleFav
 app.get('/profile', checkAuthenticated, Profilecontroller.show);
 app.post('/profile', checkAuthenticated, Profilecontroller.update);
 app.post('/profile/password', checkAuthenticated, Profilecontroller.changePassword);
+app.get('/my-reviews', checkAuthenticated, Reviewcontroller.listUserReviews);
 
 // Admin user management
 app.get('/users', checkAuthenticated, checkAdmin, UserAdmincontroller.list);
@@ -162,8 +168,11 @@ app.post('/users/:id/edit', checkAuthenticated, checkAdmin, UserAdmincontroller.
 app.post('/users/:id/delete', checkAuthenticated, checkAdmin, UserAdmincontroller.remove);
 app.post('/users/:id/promote', checkAuthenticated, checkAdmin, UserAdmincontroller.promote);
 app.post('/users/:id/demote', checkAuthenticated, checkAdmin, UserAdmincontroller.demote);
+app.get('/admin', checkAuthenticated, checkAdmin, AdminDashboardcontroller.dashboard);
+app.get('/admin/revenue', checkAuthenticated, checkAdmin, AdminDashboardcontroller.revenue);
 
-app.get('/', checkAuthenticated, (req, res) => res.render('home', { title: 'Home' }));
+app.get('/', (req, res) => res.render('home', { title: 'Home' }));
+app.get('/home', (req, res) => res.render('home', { title: 'Home' }));
 
 // Error handler
 app.use((err, req, res, next) => {

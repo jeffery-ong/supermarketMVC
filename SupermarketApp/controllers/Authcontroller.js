@@ -33,20 +33,29 @@ module.exports = {
         req.flash('error', 'Username or email and password required');
         return res.redirect('/login');
       }
-      const user = await User.authenticate(identifier, password);
+      const user = await User.findByIdentifier(identifier);
       if (!user) {
         req.flash('error', 'Account not found');
         return res.redirect('/login');
       }
+      const validPassword = User.verifyPassword(password, user.password);
+      if (!validPassword) {
+        req.flash('error', 'Error! Wrong password entered. Try again!');
+        return res.redirect('/login');
+      }
+      const role = (user.role || 'user').toLowerCase();
       req.session.user = {
         id: user.id,
         username: user.username,
-        role: user.role,
+        role,
         email: user.email,
         contact: user.contact,
         address: user.address
       };
-      req.session.save(() => res.redirect('/shopping'));
+      req.session.save(() => {
+        if (role === 'admin') return res.redirect('/admin');
+        res.redirect('/shopping');
+      });
     } catch (err) {
       console.error('Login error:', err);
       req.flash('error', 'Login failed');

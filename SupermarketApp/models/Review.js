@@ -54,5 +54,74 @@ module.exports = {
         [userId, productId, cleanRating, limitedComment || null]
       );
     return result.insertId;
+  },
+
+  async getForUser(userId) {
+    if (!userId) return [];
+    await ready;
+    const [rows] = await db
+      .promise()
+      .query(
+        `SELECT r.id,
+                r.product_id,
+                r.rating,
+                r.comment,
+                r.created_at,
+                p.productName AS product_name,
+                p.image AS product_image
+         FROM product_reviews r
+         JOIN products p ON p.id = r.product_id
+         WHERE r.user_id = ?
+         ORDER BY r.created_at DESC`,
+        [userId]
+      );
+    return rows.map(r => {
+      let img = r.product_image || '';
+      if (!img) {
+        img = '/images/placeholder-product.jpg';
+      } else if (!img.startsWith('http') && !img.startsWith('/')) {
+        const normalized = img.toLowerCase();
+        img = `/images/${normalized}`;
+      }
+      return { ...r, product_image: img };
+    });
+  },
+
+  async getAverageForProduct(productId) {
+    if (!productId) return { average: 0, count: 0 };
+    await ready;
+    const [[row]] = await db
+      .promise()
+      .query(
+        'SELECT AVG(rating) AS average, COUNT(*) AS count FROM product_reviews WHERE product_id = ?',
+        [productId]
+      );
+    const average = row && row.average ? Number(row.average) : 0;
+    const count = row && row.count ? Number(row.count) : 0;
+    return { average, count };
+  },
+
+  async getAveragesForProductIds(productIds = []) {
+    if (!productIds.length) return {};
+    await ready;
+    const placeholders = productIds.map(() => '?').join(', ');
+    const values = productIds;
+    const [rows] = await db
+      .promise()
+      .query(
+        `SELECT product_id, AVG(rating) AS average, COUNT(*) AS count
+         FROM product_reviews
+         WHERE product_id IN (${placeholders})
+         GROUP BY product_id`,
+        values
+      );
+    const map = {};
+    rows.forEach(r => {
+      map[r.product_id] = {
+        average: r.average ? Number(r.average) : 0,
+        count: r.count ? Number(r.count) : 0
+      };
+    });
+    return map;
   }
 };

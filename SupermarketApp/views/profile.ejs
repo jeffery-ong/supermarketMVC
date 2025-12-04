@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ï»¿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -33,6 +33,7 @@
 
     <% const cardInfoSafe = (typeof cardInfo === "undefined" || !cardInfo) ? {} : cardInfo; %>
     <% const maskedCard = cardInfoSafe.last4 ? ('************' + cardInfoSafe.last4) : ''; %>
+    <% const isAdmin = profile && (profile.role || '').toLowerCase() === 'admin'; %>
 
     <form action="/profile" method="POST" class="profile-card mb-4" id="profile-form">
       <div class="row g-3">
@@ -50,84 +51,94 @@
         </div>
       </div>
 
-      <div class="mt-4 p-3 rounded-3 border border-2 border-light shadow-sm">
-        <div class="d-flex align-items-center gap-2 mb-3">
-          <span class="badge bg-info text-dark">Saved Credit/Debit Card</span>
-          <span class="text-muted small">Optional</span>
+      <% if (!isAdmin) { %>
+        <div class="mt-4 p-3 rounded-3 border border-2 border-light shadow-sm">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <span class="badge bg-info text-dark">Saved Credit/Debit Card</span>
+            <span class="text-muted small">Optional</span>
+          </div>
+          <div class="row g-2 align-items-center mb-2">
+            <div class="col-md-6 col-12">
+              <input
+                type="text"
+                class="form-control profile-field"
+                name="cardName"
+                placeholder="Name on card"
+                value="<%= (cardInfoSafe.card_name || '') %>"
+                readonly
+              >
+            </div>
+          </div>
+          <div class="row g-2 align-items-center">
+            <div class="col-md-7 col-sm-8 col-12">
+              <input
+                id="cardNumber"
+                type="text"
+                class="form-control profile-field"
+                name="cardNumber"
+                placeholder="<%= cardInfoSafe.last4 ? ('Saved ****' + cardInfoSafe.last4) : 'Enter 16-digit card number' %>"
+                inputmode="numeric"
+                pattern="[0-9]{16}"
+                minlength="16"
+                maxlength="16"
+                title="Enter exactly 16 digits"
+                oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,16)"
+                value="<%= maskedCard %>"
+                readonly
+              >
+            </div>
+            <div class="col-md-5 col-sm-4 col-12">
+              <input
+                type="text"
+                class="form-control text-capitalize profile-field"
+                name="cardLabel"
+                placeholder="Card label (optional)"
+                value="<%= (cardInfoSafe.label || '') %>"
+                readonly
+              >
+            </div>
+          </div>
+          <div class="row g-2 align-items-center mt-2">
+            <div class="col-md-6 col-sm-6 col-12">
+              <input
+                type="text"
+                class="form-control profile-field"
+                name="expiry"
+                placeholder="MM/YY"
+                pattern="(0[1-9]|1[0-2])/(2[24-9]|[3-9][0-9])"
+                title="Format MM/YY, year 24 or later"
+                oninput="this.value = this.value.replace(/[^0-9/]/g, '').slice(0,5)"
+                value="<%= (cardInfoSafe.expiry || '') %>"
+                readonly
+              >
+            </div>
+            <div class="col-md-6 col-sm-6 col-12">
+              <input
+                type="text"
+                class="form-control profile-field"
+                name="cvv"
+                placeholder="CVV"
+                inputmode="numeric"
+                pattern="[0-9]{3}"
+                maxlength="3"
+                title="3-digit CVV"
+                oninput="this.value = this.value.replace(/\D/g, '').slice(0,3)"
+                value="<%= (cardInfoSafe.cvv || '') %>"
+                readonly
+              >
+            </div>
+          </div>
+          <div class="text-muted small mt-2">Input enabled for demo; card details are not stored.</div>
         </div>
-        <div class="row g-2 align-items-center mb-2">
-          <div class="col-md-6 col-12">
-            <input
-              type="text"
-              class="form-control profile-field"
-              name="cardName"
-              placeholder="Name on card"
-              value="<%= (cardInfoSafe.card_name || '') %>"
-              readonly
-            >
+      <% } else { %>
+        <div class="mt-4 p-3 rounded-3 border border-2 border-light shadow-sm bg-light">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="badge bg-secondary">Payments</span>
+            <span class="text-muted small">Admin accounts do not save card details</span>
           </div>
+          <div class="text-muted small">Card storage is disabled for admin profiles.</div>
         </div>
-        <div class="row g-2 align-items-center">
-          <div class="col-md-7 col-sm-8 col-12">
-            <input
-              id="cardNumber"
-              type="text"
-              class="form-control profile-field"
-              name="cardNumber"
-              placeholder="<%= cardInfoSafe.last4 ? ('Saved ••••' + cardInfoSafe.last4) : 'Enter 16-digit card number' %>"
-              inputmode="numeric"
-              pattern="[0-9]{16}"
-              minlength="16"
-              maxlength="16"
-              title="Enter exactly 16 digits"
-              oninput="this.value = this.value.replace(/\D/g, '').slice(0,16)"
-              value="<%= maskedCard %>"
-              readonly
-            >
-          </div>
-          <div class="col-md-5 col-sm-4 col-12">
-            <input
-              type="text"
-              class="form-control text-capitalize profile-field"
-              name="cardLabel"
-              placeholder="Card label (optional)"
-              value="<%= (cardInfoSafe.label || '') %>"
-              readonly
-            >
-          </div>
-        </div>
-        <div class="row g-2 align-items-center mt-2">
-          <div class="col-md-6 col-sm-6 col-12">
-            <input
-              type="text"
-              class="form-control profile-field"
-              name="expiry"
-              placeholder="MM/YY"
-              pattern="(0[1-9]|1[0-2])/(2[24-9]|[3-9][0-9])"
-              title="Format MM/YY, year 24 or later"
-              oninput="this.value = this.value.replace(/[^0-9/]/g, '').slice(0,5)"
-              value="<%= (cardInfoSafe.expiry || '') %>"
-              readonly
-            >
-          </div>
-          <div class="col-md-6 col-sm-6 col-12">
-            <input
-              type="text"
-              class="form-control profile-field"
-              name="cvv"
-              placeholder="CVV"
-              inputmode="numeric"
-              pattern="[0-9]{3}"
-              maxlength="3"
-              title="3-digit CVV"
-              oninput="this.value = this.value.replace(/\D/g, '').slice(0,3)"
-              value="<%= (cardInfoSafe.cvv || '') %>"
-              readonly
-            >
-          </div>
-        </div>
-        <div class="text-muted small mt-2">Input enabled for demo; card details are not stored.</div>
-      </div>
+      <% } %>
 
       <div class="mt-4">
         <label for="address" class="form-label text-muted small">Address</label>

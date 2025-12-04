@@ -27,7 +27,9 @@ const hydrate = row => {
     category: row.category || '',
     discount: 0,
     offerMessage: '',
-    isFavorite: false // set per-user in controller
+    isFavorite: false, // set per-user in controller
+    ratingAverage: row.ratingAverage ? Number(row.ratingAverage) : 0,
+    ratingCount: row.ratingCount ? Number(row.ratingCount) : 0
   };
 };
 
@@ -35,15 +37,19 @@ module.exports = {
   getAll() {
     return new Promise((resolve, reject) => {
       db.query(
-        `SELECT id,
-                productName       AS name,
-                quantity          AS stock,
-                price,
-                image,
-                category,
-                description
-         FROM products
-         ORDER BY productName ASC`,
+        `SELECT p.id,
+                p.productName       AS name,
+                p.quantity          AS stock,
+                p.price,
+                p.image,
+                p.category,
+                p.description,
+                COALESCE(AVG(r.rating), 0) AS ratingAverage,
+                COUNT(r.id)         AS ratingCount
+         FROM products p
+         LEFT JOIN product_reviews r ON p.id = r.product_id
+         GROUP BY p.id
+         ORDER BY p.productName ASC`,
         (err, rows) => {
           if (err) return reject(err);
           resolve(rows.map(hydrate));
@@ -55,15 +61,19 @@ module.exports = {
   getById(id) {
     return new Promise((resolve, reject) => {
       db.query(
-        `SELECT id,
-                productName       AS name,
-                quantity          AS stock,
-                price,
-                image,
-                category,
-                description
-         FROM products
-         WHERE id = ?`,
+        `SELECT p.id,
+                p.productName       AS name,
+                p.quantity          AS stock,
+                p.price,
+                p.image,
+                p.category,
+                p.description,
+                COALESCE(AVG(r.rating), 0) AS ratingAverage,
+                COUNT(r.id)         AS ratingCount
+         FROM products p
+         LEFT JOIN product_reviews r ON p.id = r.product_id
+         WHERE p.id = ?
+         GROUP BY p.id`,
         [id],
         (err, rows) => {
           if (err) return reject(err);

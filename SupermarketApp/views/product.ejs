@@ -11,6 +11,10 @@
 
   <main class="container py-5">
     <% const reviewsSafe = (typeof reviews === 'undefined' || !Array.isArray(reviews)) ? [] : reviews; %>
+    <% let ratingAvg = Number(typeof ratingAverage !== 'undefined' ? ratingAverage : 0) || 0; %>
+    <% let ratingCnt = Number(typeof ratingCount !== 'undefined' ? ratingCount : 0) || 0; %>
+    <% if (ratingCnt === 0 && reviewsSafe.length) { const sum = reviewsSafe.reduce((s, r) => s + (Number(r.rating) || 0), 0); ratingCnt = reviewsSafe.length; ratingAvg = ratingCnt ? sum / ratingCnt : 0; } %>
+    <% const starFilled = '&#9733;'; const starEmpty = '&#9734;'; const renderStars = rating => starFilled.repeat(rating) + starEmpty.repeat(5 - rating); %>
     <div class="row g-4">
       <div class="col-md-6">
         <% const imageSrc = product.image || '/images/placeholder-product.jpg'; %>
@@ -19,18 +23,31 @@
       <div class="col-md-6">
         <h1 class="mb-3"><%= product.name %></h1>
         <p class="lead fw-semibold">$<%= Number(product.price).toFixed(2) %></p>
+        <div class="mb-2 text-warning">
+          <span class="me-1"><%- renderStars(Math.round(ratingAvg)) %></span>
+          <span class="text-muted"><%= ratingAvg.toFixed(1) %> stars (<%= ratingCnt %> review<%= ratingCnt === 1 ? '' : 's' %>)</span>
+        </div>
         <p class="text-muted">Stock available: <%= product.stock %></p>
         <% if (product.description) { %>
           <p class="mb-3"><%= product.description %></p>
         <% } %>
-        <form action="/cart/add" method="POST" class="mt-4">
-          <input type="hidden" name="productId" value="<%= product.id %>" />
-          <div class="input-group mb-3" style="max-width: 240px;">
-            <input type="number" class="form-control" name="quantity" value="1" min="1" inputmode="numeric" />
-            <button class="btn btn-primary" type="submit">Add to Cart</button>
+        <% if (session && session.user) { %>
+          <form action="/cart/add" method="POST" class="mt-4">
+            <input type="hidden" name="productId" value="<%= product.id %>" />
+            <div class="input-group mb-3" style="max-width: 240px;">
+              <input type="number" class="form-control" name="quantity" value="1" min="1" inputmode="numeric" />
+              <button class="btn btn-primary" type="submit">Add to Cart</button>
+            </div>
+          </form>
+        <% } else { %>
+          <div class="d-flex flex-column gap-2 mt-4">
+            <a class="btn btn-outline-secondary" href="/login">Login to add to cart</a>
+            <a href="/shopping" class="btn btn-outline-secondary">Back to Shop</a>
           </div>
-        </form>
-        <a href="/shopping" class="btn btn-outline-secondary">Back to Shop</a>
+        <% } %>
+        <% if (session && session.user) { %>
+          <a href="/shopping" class="btn btn-outline-secondary mt-2">Back to Shop</a>
+        <% } %>
       </div>
     </div>
 
@@ -38,22 +55,29 @@
     <div id="reviews" class="row">
       <div class="col-lg-6 mb-4">
         <h3 class="h5">Leave a Review</h3>
-        <form action="/product/<%= product.id %>/review" method="POST" class="card p-3 shadow-sm">
-          <div class="mb-3">
-            <label class="form-label">Rating</label>
-            <select name="rating" class="form-select" required>
-              <option value="">Select rating</option>
-              <% [5,4,3,2,1].forEach(r => { %>
-                <option value="<%= r %>"><%= '★'.repeat(r) %><%= '☆'.repeat(5-r) %> (<%= r %>)</option>
-              <% }) %>
-            </select>
+        <% if (session && session.user) { %>
+          <form action="/product/<%= product.id %>/review" method="POST" class="card p-3 shadow-sm">
+            <div class="mb-3">
+              <label class="form-label">Rating</label>
+              <select name="rating" class="form-select" required>
+                <option value="">Select rating</option>
+                <% [5,4,3,2,1].forEach(r => { %>
+                  <option value="<%= r %>"><%- renderStars(r) %> (<%= r %>)</option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Review</label>
+              <textarea name="comment" rows="3" class="form-control" placeholder="Share your experience" maxlength="1000"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Review</button>
+          </form>
+        <% } else { %>
+          <div class="card p-3 shadow-sm">
+            <p class="mb-3 text-muted">Login to leave a review.</p>
+            <a class="btn btn-outline-primary" href="/login">Login</a>
           </div>
-          <div class="mb-3">
-            <label class="form-label">Review</label>
-            <textarea name="comment" rows="3" class="form-control" placeholder="Share your experience" maxlength="1000"></textarea>
-          </div>
-          <button type="submit" class="btn btn-primary">Submit Review</button>
-        </form>
+        <% } %>
       </div>
       <div class="col-lg-6">
         <h3 class="h5">Recent Reviews</h3>
@@ -64,7 +88,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                   <div class="fw-semibold"><%= r.username || 'User #' + r.user_id %></div>
                   <div class="text-warning">
-                    <%= '★'.repeat(Number(r.rating) || 0) %><%= '☆'.repeat(5 - (Number(r.rating) || 0)) %>
+                    <%- renderStars(Number(r.rating) || 0) %>
                   </div>
                 </div>
                 <% if (r.comment) { %>

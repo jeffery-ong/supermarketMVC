@@ -70,6 +70,8 @@ module.exports = {
     });
   },
 
+  verifyPassword: verify,
+
   create({ username, email, contact, address, password, role = 'user' }) {
     return new Promise((resolve, reject) => {
       const stored = hash(password);
@@ -91,7 +93,6 @@ module.exports = {
   },
 
   findByIdentifier,
-  verifyPassword: verify,
   normalizeUser,
 
   findById(id) {
